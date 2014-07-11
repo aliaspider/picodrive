@@ -24,10 +24,10 @@
 #include <libkern/OSCacheControl.h>
 #endif
 
-#include <pico/pico_int.h>
-#include <pico/state.h>
-#include "../common/input_pico.h"
-#include "../common/version.h"
+#include <Pico/PicoInt.h>
+//#include <Pico/state.h>
+//#include "../common/input_pico.h"
+#include "version.h"
 #include "libretro.h"
 
 static retro_log_printf_t log_cb;
@@ -519,37 +519,37 @@ static unsigned int disk_get_image_index(void)
 
 static bool disk_set_image_index(unsigned int index)
 {
-	enum cd_img_type cd_type;
-	int ret;
+//	enum cd_img_type cd_type;
+//	int ret;
 
-	if (index >= sizeof(disks) / sizeof(disks[0]))
-		return false;
+//	if (index >= sizeof(disks) / sizeof(disks[0]))
+//		return false;
 
-	if (disks[index].fname == NULL) {
-      if (log_cb)
-         log_cb(RETRO_LOG_ERROR, "missing disk #%u\n", index);
+//	if (disks[index].fname == NULL) {
+//      if (log_cb)
+//         log_cb(RETRO_LOG_ERROR, "missing disk #%u\n", index);
 
-		// RetroArch specifies "no disk" with index == count,
-		// so don't fail here..
-		disk_current_index = index;
-		return true;
-	}
+//		// RetroArch specifies "no disk" with index == count,
+//		// so don't fail here..
+//		disk_current_index = index;
+//		return true;
+//	}
 
-   if (log_cb)
-      log_cb(RETRO_LOG_INFO, "switching to disk %u: \"%s\"\n", index,
-            disks[index].fname);
+//   if (log_cb)
+//      log_cb(RETRO_LOG_INFO, "switching to disk %u: \"%s\"\n", index,
+//            disks[index].fname);
 
-	ret = -1;
-	cd_type = PicoCdCheck(disks[index].fname, NULL);
-	if (cd_type != CIT_NOT_CD)
-		ret = cdd_load(disks[index].fname, cd_type);
-	if (ret != 0) {
-      if (log_cb)
-         log_cb(RETRO_LOG_ERROR, "Load failed, invalid CD image?\n");
-		return 0;
-	}
+//	ret = -1;
+//	cd_type = PicoCdCheck(disks[index].fname, NULL);
+//	if (cd_type != CIT_NOT_CD)
+//		ret = cdd_load(disks[index].fname, cd_type);
+//	if (ret != 0) {
+//      if (log_cb)
+//         log_cb(RETRO_LOG_ERROR, "Load failed, invalid CD image?\n");
+//		return 0;
+//	}
 
-	disk_current_index = index;
+//	disk_current_index = index;
 	return true;
 }
 

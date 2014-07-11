@@ -1,22 +1,5 @@
 # Makefile for PicoDrive (libretro)
 
-ifeq ($(platform),)
-platform = unix
-ifeq ($(shell uname -a),)
-   platform = win
-else ifneq ($(findstring MINGW,$(shell uname -a)),)
-   platform = win
-else ifneq ($(findstring Darwin,$(shell uname -a)),)
-   platform = osx
-   arch = intel
-ifeq ($(shell uname -p),powerpc)
-   arch = ppc
-endif
-else ifneq ($(findstring win,$(shell uname -a)),)
-   platform = win
-endif
-endif
-
 CC ?= gcc
 CXX ?= g++
 AS ?= as
@@ -25,6 +8,28 @@ CFLAGS ?=
 
 TARGET_NAME := picodrive
 
+
+TARGET := $(TARGET_NAME)_libretro_psp1.a
+CC = psp-gcc$(EXE_EXT)
+AR = psp-ar$(EXE_EXT)
+CFLAGS += -G0
+STATIC_LINKING = 1
+NO_MMAP = 1
+DONT_COMPILE_IN_ZLIB = 1
+
+CFLAGS += -D_ASM_DRAW_C_AMIPS
+#   CFLAGS += -D_ASM_DRAW_C
+#OBJS += pico/draw_amips.o
+CFLAGS += -D_ASM_MISC_C_AMIPS
+#OBJS +=pico/misc_amips.o
+#OBJS += pico/memory_amips.o
+CFLAGS += -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
+CFLAGS += -Iplatform/psp
+#   CFLAGS += -DPicoRead8_sram=SRAMRead -DPicoRead16_sram=SRAMRead16
+#   CFLAGS += -DPicoRead8_sram=SRAMRead -DPicoRead16_sram=SRAMRead16
+#   CFLAGS += -DPicoRead8_io=PicoRead8 -DPicoRead16_io=PicoRead16 -DPicoRead32_io=PicoRead32
+ASFLAGS+=-march=allegrex -mtune=allegrex
+
 asm_memory = 0
 asm_render = 0
 asm_ym2612 = 0
@@ -32,220 +37,15 @@ asm_misc = 0
 asm_cdpico = 0
 asm_cdmemory = 0
 asm_mix = 0
-
-ifeq ($(platform), unix)
-   TARGET := $(TARGET_NAME)_libretro.so
-   SHARED := -shared
-else ifeq ($(platform), osx)
-   TARGET := $(TARGET_NAME)_libretro.dylib
-   SHARED := -dynamiclib
-   APPLE := 1
-
-   arch = intel
-ifeq ($(shell uname -p),powerpc)
-   arch = ppc
-endif
-
-ifeq ($(arch),ppc)
-   CFLAGS += -DBLARGG_BIG_ENDIAN=1 -D__ppc__ -DFAMEC_NO_GOTOS
-endif
-OSXVER = `sw_vers -productVersion | cut -c 4`
-ifneq ($(OSXVER),9)
-   SHARED += -mmacosx-version-min=10.5
-endif
-else ifeq ($(platform), ios)
-   TARGET := $(TARGET_NAME)_libretro_ios.dylib
-   SHARED := -dynamiclib
-   APPLE := 1
-
-   CC = clang -arch armv7 -isysroot $(IOSSDK)
-   CXX = clang++ -arch armv7 -isysroot $(IOSSDK)
-   CC_AS = perl ./tools/gas-preprocessor.pl $(CC)
-   CFLAGS += -mcpu=cortex-a8 -mtune=cortex-a8 -mfpu=neon -marm 
-   ASFLAGS += -mcpu=cortex-a8 -mtune=cortex-a8 -mfpu=neon
-   CFLAGS += -DIOS
-OSXVER = `sw_vers -productVersion | cut -c 4`
-ifneq ($(OSXVER),9)
-   CC += -miphoneos-version-min=5.0
-   CXX += -miphoneos-version-min=5.0
-   CC_AS += -miphoneos-version-min=5.0
-   CFLAGS += -miphoneos-version-min=5.0
-endif
-
-   ARCH := arm
-
-   use_cyclone = 0
-   use_fame = 1
-   use_drz80 = 0
-   use_cz80 = 1
-   use_sh2drc = 1
-   use_svpdrc = 1
-
-else ifeq ($(platform), ps3)
-   TARGET := $(TARGET_NAME)_libretro_ps3.a
-   CC = $(CELL_SDK)/host-win32/ppu/bin/ppu-lv2-gcc.exe
-   AR = $(CELL_SDK)/host-win32/ppu/bin/ppu-lv2-ar.exe
-   CFLAGS += -DBLARGG_BIG_ENDIAN=1 -D__ppc__ -DFAMEC_NO_GOTOS
-	STATIC_LINKING = 1
-	NO_MMAP = 1
-	DONT_COMPILE_IN_ZLIB = 1
-
-	asm_memory = 0
-	asm_render = 0
-	asm_ym2612 = 0
-	asm_misc = 0
-	asm_cdpico = 0
-	asm_cdmemory = 0
-	asm_mix = 0
-   use_cyclone = 0
-   use_fame = 1
-   use_drz80 = 0
-   use_cz80 = 1
-else ifeq ($(platform), sncps3)
-   TARGET := $(TARGET_NAME)_libretro_ps3.a
-   CC = $(CELL_SDK)/host-win32/sn/bin/ps3ppusnc.exe
-   AR = $(CELL_SDK)/host-win32/sn/bin/ps3snarl.exe
-   CFLAGS += -DBLARGG_BIG_ENDIAN=1 -D__ppc__ -DFAMEC_NO_GOTOS
-	STATIC_LINKING = 1
-	NO_MMAP = 1
-	DONT_COMPILE_IN_ZLIB = 1
-
-	asm_memory = 0
-	asm_render = 0
-	asm_ym2612 = 0
-	asm_misc = 0
-	asm_cdpico = 0
-	asm_cdmemory = 0
-	asm_mix = 0
-   use_cyclone = 0
-   use_fame = 1
-   use_drz80 = 0
-   use_cz80 = 1
-else ifeq ($(platform), psl1ght)
-   TARGET := $(TARGET_NAME)_libretro_psl1ght.a
-   CC = $(PS3DEV)/ppu/bin/ppu-gcc$(EXE_EXT)
-   AR = $(PS3DEV)/ppu/bin/ppu-ar$(EXE_EXT)
-   CFLAGS += -DBLARGG_BIG_ENDIAN=1 -D__ppc__ -DFAMEC_NO_GOTOS
-	STATIC_LINKING = 1
-	NO_MMAP = 1
-	DONT_COMPILE_IN_ZLIB = 1
-	
-	asm_memory = 0
-	asm_render = 0
-	asm_ym2612 = 0
-	asm_misc = 0
-	asm_cdpico = 0
-	asm_cdmemory = 0
-	asm_mix = 0
-   use_cyclone = 0
-   use_fame = 1
-   use_drz80 = 0
-   use_cz80 = 1
-else ifeq ($(platform), psp1)
-   TARGET := $(TARGET_NAME)_libretro_psp1.a
-   CC = psp-gcc$(EXE_EXT)
-   AR = psp-ar$(EXE_EXT)
-   CFLAGS += -G0
-   STATIC_LINKING = 1
-   NO_MMAP = 1
-   DONT_COMPILE_IN_ZLIB = 1
-
-   CFLAGS += -D_ASM_DRAW_C_AMIPS
-#   CFLAGS += -D_ASM_DRAW_C
-   OBJS += pico/draw_amips.o
-   CFLAGS += -D_ASM_MISC_C_AMIPS
-   OBJS +=pico/misc_amips.o
-   OBJS += pico/memory_amips.o
-   CFLAGS += -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
-#   CFLAGS += -DPicoRead8_sram=SRAMRead -DPicoRead16_sram=SRAMRead16
-#   CFLAGS += -DPicoRead8_sram=SRAMRead -DPicoRead16_sram=SRAMRead16
-   CFLAGS += -DPicoRead8_io=PicoRead8 -DPicoRead16_io=PicoRead16 -DPicoRead32_io=PicoRead32
-   ASFLAGS+=-march=allegrex -mtune=allegrex
-
-   asm_memory = 0
-   asm_render = 0
-   asm_ym2612 = 0
-   asm_misc = 0
-   asm_cdpico = 0
-   asm_cdmemory = 0
-   asm_mix = 0
-   use_cyclone = 0
-   use_fame = 1
-   use_drz80 = 0
-   use_cz80 = 1
-else ifeq ($(platform), xenon)
-   TARGET := $(TARGET_NAME)_libretro_xenon360.a
-   CC = xenon-gcc$(EXE_EXT)
-   AR = xenon-ar$(EXE_EXT)
-   CFLAGS += -D__LIBXENON__ -m32 -D__ppc__
-else ifeq ($(platform), ngc)
-   TARGET := $(TARGET_NAME)_libretro_ngc.a
-   CC = $(DEVKITPPC)/bin/powerpc-eabi-gcc$(EXE_EXT)
-   AR = $(DEVKITPPC)/bin/powerpc-eabi-ar$(EXE_EXT)
-   CFLAGS += -DGEKKO -DHW_DOL -mrvl -mcpu=750 -meabi -mhard-float -DBLARGG_BIG_ENDIAN=1 -D__ppc__
-else ifeq ($(platform), wii)
-   TARGET := libretro_$(TARGET_NAME)_wii.a
-   CC = $(DEVKITPPC)/bin/powerpc-eabi-gcc$(EXE_EXT)
-   AR = $(DEVKITPPC)/bin/powerpc-eabi-ar$(EXE_EXT)
-   CFLAGS += -DGEKKO -DHW_RVL -mrvl -mcpu=750 -meabi -mhard-float -DBLARGG_BIG_ENDIAN=1 -D__ppc__
-else ifeq ($(platform), qnx)
-   TARGET := $(TARGET_NAME)_libretro_qnx.so
-   CC = qcc -Vgcc_ntoarmv7le
-   CC_AS = $(CC)
-   CFLAGS += -DBASE_ADDR_FIXED=0 -D__BLACKBERRY_QNX__ -marm -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp
-   ASFLAGS +=  -mcpu=cortex-a9 -mfpu=neon -mfloat-abi=softfp
-
-   ARCH = arm
-   ARM_ASM = 1
-else ifneq (,$(findstring armv,$(platform)))
-   TARGET := $(TARGET_NAME)_libretro.so
-   SHARED := -shared -Wl,--no-undefined
-ifneq (,$(findstring cortexa8,$(platform)))
-   CFLAGS += -marm -mcpu=cortex-a8
-   ASFLAGS += -mcpu=cortex-a8
-else ifneq (,$(findstring cortexa9,$(platform)))
-   CFLAGS += -marm -mcpu=cortex-a9
-   ASFLAGS += -mcpu=cortex-a9
-endif
-   CFLAGS += -marm
-ifneq (,$(findstring neon,$(platform)))
-   CFLAGS += -mfpu=neon
-   ASFLAGS += -mfpu=neon
-endif
-ifneq (,$(findstring softfloat,$(platform)))
-   CFLAGS += -mfloat-abi=softfp
-   ASFLAGS += -mfloat-abi=softfp
-else ifneq (,$(findstring hardfloat,$(platform)))
-   CFLAGS += -mfloat-abi=hard
-   ASFLAGS += -mfloat-abi=hard
-endif
-ifneq (,$(findstring armasm,$(platform)))
-   ARM_ASM = 1
-endif
-   ARCH = arm
-else
-   TARGET := $(TARGET_NAME)_retro.dll
-   CC = gcc
-   LD_FLAGS := -fPIC
-   SHARED := -shared -static-libgcc -static-libstdc++
-   CFLAGS += -D__WIN32__ -D__WIN32_LIBRETRO__
-endif
-
-CFLAGS += -DNO_ZLIB
+use_cyclone = 0
+use_fame = 1
+use_drz80 = 0
+use_cz80 = 1
 
 ifeq ($(NO_MMAP),1)
 CFLAGS += -DNO_MMAP
 endif
 
-ifeq ($(ARM_ASM),1)
-asm_memory = 1
-asm_render = 1
-asm_ym2612 = 1
-asm_misc = 1
-asm_cdpico = 1
-asm_cdmemory = 1
-asm_mix = 1
-endif
 
 #CFLAGS += -fPIC
 LDLIBS += -lm
@@ -255,4 +55,149 @@ LDFLAGS += $(SHARED)
 PLATFORM = libretro
 NO_CONFIG_MAK = yes
 
-include Makefile
+#include Makefile
+# pspdev is expected to be in path
+#PSPSDK = $(shell psp-config --pspsdk-path)
+
+# settings
+#use_musashi = 1
+#use_mz80 = 1
+#amalgamate = 0
+#for_15fw = 0
+# :!touch platform/psp/psp.c
+
+
+CFLAGS += -I../.. -I. -DNO_SYNC
+CFLAGS += -Wall -Winline -G0
+#CFLAGS += -g -O0
+#CFLAGS += -DLPRINTF_STDIO
+#CFLAGS += -pg
+ifeq ($(DEBUG),)
+CFLAGS += -O2 -ftracer -fstrength-reduce -ffast-math
+else
+#CFLAGS += -ggdb
+CFLAGS += -g -O0
+endif
+#ifeq "$(for_15fw)" "1"
+#CFLAGS += -DFW15
+#endif
+
+
+# frontend and stuff
+#OBJS += main.o emu.o mp3.o menu.o psp.o asm_utils.o
+
+# common
+#OBJS += platform/common/emu.o platform/common/menu.o platform/common/fonts.o platform/common/config.o platform/common/readpng.o
+
+## Pico
+#ifeq "$(amalgamate)" "1"
+#OBJS += ../../PicoAll.o
+#else
+OBJS += Pico/Area.o Pico/Cart.o Pico/Memory.o Pico/Misc.o Pico/Pico.o Pico/Sek.o Pico/VideoPort.o \
+					 Pico/Draw2.o Pico/Draw.o Pico/Patch.o Pico/Draw_amips.o Pico/Memory_amips.o \
+					 Pico/Misc_amips.o Pico/Debug.o
+# Pico - CD
+OBJS += Pico/cd/Pico.o Pico/cd/Memory.o Pico/cd/Sek.o Pico/cd/LC89510.o \
+					 Pico/cd/cd_sys.o Pico/cd/cd_file.o Pico/cd/cue.o Pico/cd/gfx_cd.o \
+					 Pico/cd/Area.o Pico/cd/Misc.o Pico/cd/pcm.o Pico/cd/buffering.o
+# Pico - carthw
+OBJS += Pico/carthw/carthw.o Pico/carthw/svp/svp.o Pico/carthw/svp/Memory.o \
+					 Pico/carthw/svp/ssp16.o
+# Pico - Pico
+OBJS += Pico/Pico/Pico.o Pico/Pico/Memory.o Pico/Pico/xpcm.o
+#endif
+
+## Pico - sound
+#ifneq "$(amalgamate)" "1"
+#OBJS += Pico/sound/sound.o
+#endif
+OBJS += Pico/sound/mix.o
+OBJS += Pico/sound/sn76496.o Pico/sound/ym2612.o
+# zlib (hacked)
+#OBJS += zlib/gzio.o zlib/inffast.o zlib/inflate.o zlib/inftrees.o zlib/trees.o \
+#	zlib/deflate.o zlib/crc32.o zlib/adler32.o zlib/zutil.o zlib/compress.o \
+#	zlib/uncompr.o
+## unzip
+#OBJS += unzip/unzip.o unzip/unzip_stream.o
+
+OBJS += platform/libretro/libretro.o
+
+# CPU cores
+ifeq "$(use_musashi)" "1"
+CFLAGS += -DEMU_M68K
+OBJS += cpu/musashi/m68kops.o cpu/musashi/m68kcpu.o
+else
+CFLAGS += -DEMU_F68K
+OBJS += cpu/fame/famec.o
+endif
+# z80
+ifeq "$(use_mz80)" "1"
+CFLAGS += -D_USE_MZ80
+OBJS += cpu/mz80/mz80.o
+else
+CFLAGS += -D_USE_CZ80
+OBJS += cpu/cz80/cz80.o
+endif
+# bg images
+#OBJS += data/bg32.o data/bg40.o
+
+#vpath %.c = ../..
+#vpath %.s = ../..
+DIRS = platform platform/psp platform/common Pico Pico/cd Pico/Pico Pico/sound Pico/carthw/svp \
+		  zlib unzip cpu cpu/musashi cpu/fame cpu/mz80 cpu/cz80
+
+
+#LIBS += -lpng -lm -lpspgu -lpsppower -lpspaudio -lpsprtc -lpspaudiocodec -lpspkubridge
+#LIBS += -lpspprof
+#LDFLAGS += -Wl,-Map=PicoDrive.map
+
+all:$(TARGET)
+
+$(TARGET): $(OBJS)
+	$(AR) rcs $@ $(OBJS)
+
+clean:
+	$(RM) $(TARGET) $(OBJS)
+
+.c.o:
+	@echo ">>>" $<
+	$(CC) $(CFLAGS) -c $< -o $@
+
+AS := psp-as
+
+.s.o:
+	@echo ">>>" $<
+	$(AS) -march=allegrex -mtune=allegrex $< -o $@
+
+../../cpu/musashi/m68kops.c :
+	make -C ../../cpu/musashi
+
+cpu/fame/famec.o : cpu/fame/famec.c
+	@echo ">>>" $<
+	$(CC) $(CFLAGS) -Wno-unused -c $< -o $@
+
+Pico/Memory.o : Pico/Memory.c
+	@echo ">>>" $<
+	$(CC) $(CFLAGS) -O2 -c $< -o $@ -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
+
+Pico/cd/Memory.o : Pico/cd/Memory.c
+	@echo ">>>" $<
+	$(CC) $(CFLAGS) -O2 -c $< -o $@
+
+Pico/Draw.o : Pico/Draw.c
+	@echo ">>>" $<
+	$(CC) $(CFLAGS) -c $< -o $@ -D_ASM_DRAW_C_AMIPS
+
+Pico/Misc.o : Pico/Misc.c
+	@echo ">>>" $<
+	$(CC) $(CFLAGS) -c $< -o $@ -D_ASM_MISC_C_AMIPS
+
+Pico/cd/gfx_cd.o : Pico/cd/gfx_cd.c
+	@echo ">>>" $<
+	$(CC) $(CFLAGS) -O2 -c $< -o $@
+
+
+
+
+
+cpu/fame/famec.o: CFLAGS += -fno-var-tracking-assignments
