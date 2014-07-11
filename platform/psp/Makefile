@@ -212,4 +212,4 @@ rel_kxploit: readme.txt ../game_def.cfg
 	zip -9 -r ../../PicoDrive_psp_$(VER)_kxploit.zip bin_to_cso_mp3
 	rm -rf bin_to_cso_mp3
 
-cpu/fame/famec.o: CFLAGS += -DFAMEC_NO_GOTOS -fno-var-tracking-assignments
+cpu/fame/famec.o: CFLAGS += -fno-var-tracking-assignments

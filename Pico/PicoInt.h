@@ -55,7 +55,7 @@ extern struct Cyclone PicoCpuCM68k, PicoCpuCS68k;
 #define SekInterrupt(i) PicoCpuCM68k.irq=i
 
 #ifdef EMU_M68K
-#define EMU_CORE_DEBUG
+//#define EMU_CORE_DEBUG
 #endif
 #endif
 
@@ -87,7 +87,7 @@ extern M68K_CONTEXT PicoCpuFM68k, PicoCpuFS68k;
 #define SekInterrupt(irq) PicoCpuFM68k.interrupts[0]=irq
 
 #ifdef EMU_M68K
-#define EMU_CORE_DEBUG
+//#define EMU_CORE_DEBUG
 #endif
 #endif
 
