@@ -10,7 +10,7 @@ for_15fw = 1
 # :!touch platform/psp/psp.c
 
 
-CFLAGS += -I../.. -I. -DNO_SYNC -D_ASM_DRAW_C_AMIPS
+CFLAGS += -I../.. -I. -DNO_SYNC -D_ASM_DRAW_C_AMIPS -DINLINE=inline
 CFLAGS += -Wall -Winline -G0
 #CFLAGS += -DLPRINTF_STDIO
 #CFLAGS += -pg

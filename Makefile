@@ -7,6 +7,9 @@ ifneq ($(APPLE),1)
 LDFLAGS += -Wl,--gc-sections
 endif
 endif
+ifdef DEBUG
+CFLAGS += -g -O0
+endif
 #CFLAGS += -DEVT_LOG
 #CFLAGS += -DDRC_CMP
 #cpu_cmp = 1
@@ -154,8 +157,9 @@ endif
 
 ifneq "$(DONT_COMPILE_IN_ZLIB)" "1"
 # zlib
-OBJS += zlib/gzio.o zlib/inffast.o zlib/inflate.o zlib/inftrees.o zlib/trees.o \
-	zlib/deflate.o zlib/crc32.o zlib/adler32.o zlib/zutil.o zlib/compress.o zlib/uncompr.o
+#OBJS += zlib/gzio.o zlib/inffast.o zlib/inflate.o zlib/inftrees.o zlib/trees.o \
+#	zlib/deflate.o zlib/crc32.o zlib/adler32.o zlib/zutil.o zlib/compress.o zlib/uncompr.o
+OBJS += zlib/gzio.o zlib/zutil.o
 # unzip
 OBJS += unzip/unzip.o unzip/unzip_stream.o
 endif
@@ -170,6 +174,7 @@ ifneq ($(findstring gcc,$(CC)),)
 LDFLAGS += -Wl,-Map=$(TARGET).map
 endif
 
+LDLIBS += -lz
 
 target_: $(TARGET)
 
@@ -209,4 +214,5 @@ cpu/sh2/compiler.o : cpu/drc/emit_$(ARCH).c
 cpu/sh2/mame/sh2pico.o : cpu/sh2/mame/sh2.c
 pico/pico.o pico/cd/mcd.o pico/32x/32x.o : pico/pico_cmn.c pico/pico_int.h
 pico/memory.o pico/cd/cd_memory.o pico/32x/32x_memory.o : pico/pico_int.h pico/memory.h
+cpu/fame/famec.o: CFLAGS += -DFAMEC_NO_GOTOS -fno-var-tracking-assignments
 cpu/fame/famec.o: cpu/fame/famec.c cpu/fame/famec_opcodes.h

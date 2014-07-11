@@ -146,17 +146,29 @@ else ifeq ($(platform), psp1)
    CC = psp-gcc$(EXE_EXT)
    AR = psp-ar$(EXE_EXT)
    CFLAGS += -G0
-	STATIC_LINKING = 1
-	NO_MMAP = 1
-	DONT_COMPILE_IN_ZLIB = 1
+   STATIC_LINKING = 1
+   NO_MMAP = 1
+   DONT_COMPILE_IN_ZLIB = 1
 
-	asm_memory = 0
-	asm_render = 0
-	asm_ym2612 = 0
-	asm_misc = 0
-	asm_cdpico = 0
-	asm_cdmemory = 0
-	asm_mix = 0
+   CFLAGS += -D_ASM_DRAW_C_AMIPS
+#   CFLAGS += -D_ASM_DRAW_C
+   OBJS += pico/draw_amips.o
+   CFLAGS += -D_ASM_MISC_C_AMIPS
+   OBJS +=pico/misc_amips.o
+   OBJS += pico/memory_amips.o
+   CFLAGS += -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
+#   CFLAGS += -DPicoRead8_sram=SRAMRead -DPicoRead16_sram=SRAMRead16
+#   CFLAGS += -DPicoRead8_sram=SRAMRead -DPicoRead16_sram=SRAMRead16
+   CFLAGS += -DPicoRead8_io=PicoRead8 -DPicoRead16_io=PicoRead16 -DPicoRead32_io=PicoRead32
+   ASFLAGS+=-march=allegrex -mtune=allegrex
+
+   asm_memory = 0
+   asm_render = 0
+   asm_ym2612 = 0
+   asm_misc = 0
+   asm_cdpico = 0
+   asm_cdmemory = 0
+   asm_mix = 0
    use_cyclone = 0
    use_fame = 1
    use_drz80 = 0
@@ -235,9 +247,9 @@ asm_cdmemory = 1
 asm_mix = 1
 endif
 
-CFLAGS += -fPIC
+#CFLAGS += -fPIC
 LDLIBS += -lm
-SHARED ?= -shared
+#SHARED ?= -shared
 LDFLAGS += $(SHARED)
 
 PLATFORM = libretro

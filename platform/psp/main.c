@@ -11,10 +11,10 @@
 #include "emu.h"
 #include "menu.h"
 #include "mp3.h"
-#include "../common/menu.h"
+#include "../common/menu_pico.h"
 #include "../common/emu.h"
-#include "../common/config.h"
-#include "../common/lprintf.h"
+#include "../common/config_file.h"
+#include "../libpicofe/lprintf.h"
 
 #ifdef GPROF
 #include <pspprof.h>

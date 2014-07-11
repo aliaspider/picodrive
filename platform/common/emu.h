@@ -74,6 +74,7 @@ typedef struct _currentConfig_t {
 	int analog_deadzone;
 	int msh2_khz;
 	int ssh2_khz;
+   unsigned int KeyBinds[32];
 } currentConfig_t;
 
 extern currentConfig_t currentConfig, defaultConfig;

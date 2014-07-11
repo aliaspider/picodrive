@@ -22,8 +22,8 @@
 #include "mp3.h"
 #include "asm_utils.h"
 #include "../common/emu.h"
-#include "../common/config.h"
-#include "../common/lprintf.h"
+#include "../common/config_file.h"
+#include "../libpicofe/lprintf.h"
 #include <pico/pico_int.h>
 #include <pico/cd/cue.h>
 
@@ -35,13 +35,13 @@ int sceAudio_5C37C0AE(void);				// end play?
 int sceAudio_E0727056(int volume, void *buffer);	// blocking output
 int sceAudioOutput2GetRestSample();
 
-
+static unsigned int noticeMsgTime;
 //unsigned char *PicoDraw2FB = (unsigned char *)VRAM_CACHED_STUFF + 8; // +8 to be able to skip border with 1 quadword..
 int engineStateSuspend;
 
 #define PICO_PEN_ADJUST_X 4
 #define PICO_PEN_ADJUST_Y 2
-static int pico_pen_x = 320/2, pico_pen_y = 240/2;
+int pico_pen_x = 320/2, pico_pen_y = 240/2;
 
 static void sound_init(void);
 static void sound_deinit(void);
@@ -719,6 +719,7 @@ static void RunEventsPico(unsigned int events, unsigned int keys)
 		PicoPicohw.pen_pos[1] = pico_inp_mode == 1 ? (0x2f8 + pico_pen_y) : (0x1fc + pico_pen_y);
 	}
 }
+static int state_slot_times[10];
 
 static void RunEvents(unsigned int which)
 {
@@ -726,7 +727,7 @@ static void RunEvents(unsigned int which)
 	{
 		int do_it = 1;
 
-		if ( emu_check_save_file(state_slot) &&
+      if ( emu_check_save_file(state_slot, &state_slot_times[state_slot]) &&
 				(( (which & 0x1000) && (currentConfig.EmuOpt & 0x800)) || // load
 				 (!(which & 0x1000) && (currentConfig.EmuOpt & 0x200))) ) // save
 		{
@@ -774,7 +775,7 @@ static void RunEvents(unsigned int which)
 			if(state_slot > 9) state_slot = 0;
 		}
 		emu_status_msg("SAVE SLOT %i [%s]", state_slot,
-			emu_check_save_file(state_slot) ? "USED" : "FREE");
+         emu_check_save_file(state_slot, &state_slot_times[state_slot]) ? "USED" : "FREE");
 	}
 }
 
@@ -906,9 +907,9 @@ void pemu_loop(void)
 				clearArea(0);
 				notice = 0;
 			} else {
-				int sum = noticeMsg[0]+noticeMsg[1]+noticeMsg[2];
-				if (sum != noticeMsgSum) { clearArea(0); noticeMsgSum = sum; }
-				notice = noticeMsg;
+//				int sum = noticeMsg[0]+noticeMsg[1]+noticeMsg[2];
+//				if (sum != noticeMsgSum) { clearArea(0); noticeMsgSum = sum; }
+//				notice = noticeMsg;
 			}
 		}
 

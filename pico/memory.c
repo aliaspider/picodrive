@@ -154,7 +154,7 @@ static u32 ym2612_read_local_68k(void);
 static int ym2612_write_local(u32 a, u32 d, int is_from_z80);
 static void z80_mem_setup(void);
 
-#ifdef _ASM_MEMORY_C
+#if defined(_ASM_MEMORY_C)&&!defined(PSP)
 u32 PicoRead8_sram(u32 a);
 u32 PicoRead16_sram(u32 a);
 #endif
@@ -365,7 +365,7 @@ void NOINLINE ctl_write_z80reset(u32 d)
 
 // -----------------------------------------------------------------
 
-#ifndef _ASM_MEMORY_C
+#if !defined(_ASM_MEMORY_C) || defined(PSP)
 
 // cart (save) RAM area (usually 0x200000 - ...)
 static u32 PicoRead8_sram(u32 a)
@@ -598,6 +598,9 @@ end:
   return d;
 }
 
+#endif
+
+#if !defined(ASM_MEMORY_C) || defined(PSP)
 void PicoWrite8_io(u32 a, u32 d)
 {
   if ((a & 0xffe1) == 0x0001) { // I/O ports (verified: only LSB!)

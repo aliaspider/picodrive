@@ -877,7 +877,7 @@ static void update_variables(void)
 #endif
 }
 
-void retro_run(void) 
+void retro_run(void)
 {
 	bool updated = false;
 	int pad, i;
@@ -893,7 +893,7 @@ void retro_run(void)
 			if (input_state_cb(pad, RETRO_DEVICE_JOYPAD, 0, i))
 				PicoPad[pad] |= retro_pico_map[i];
 
-	PicoFrame();
+   PicoFrame();
 
 	video_cb((short *)vout_buf + vout_offset,
 		vout_width, vout_height, vout_width * 2);
