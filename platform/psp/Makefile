@@ -6,12 +6,13 @@ PSPSDK = $(shell psp-config --pspsdk-path)
 #use_musashi = 1
 #use_mz80 = 1
 amalgamate = 0
-for_15fw = 1
+for_15fw = 0
 # :!touch platform/psp/psp.c
 
 
 CFLAGS += -I../.. -I. -DNO_SYNC
 CFLAGS += -Wall -Winline -G0
+#CFLAGS += -g -O0
 #CFLAGS += -DLPRINTF_STDIO
 #CFLAGS += -pg
 ifeq ($(DEBUG),)
@@ -89,6 +90,8 @@ LIBS += -lpng -lm -lpspgu -lpsppower -lpspaudio -lpsprtc -lpspaudiocodec -lpspku
 #LIBS += -lpspprof
 LDFLAGS += -Wl,-Map=PicoDrive.map
 
+CFLAGS += -I../../SDK/include
+LDFLAGS += -L../../SDK/lib
 
 # target
 TARGET = PicoDrive
@@ -101,6 +104,8 @@ BUILD_PRX = 1
 endif
 
 CUSTOM_CLEAN = myclean
+
+BUILD_PRX = 1
 
 include $(PSPSDK)/lib/build.mak
 
@@ -207,3 +212,4 @@ rel_kxploit: readme.txt ../game_def.cfg
 	zip -9 -r ../../PicoDrive_psp_$(VER)_kxploit.zip bin_to_cso_mp3
 	rm -rf bin_to_cso_mp3
 
+cpu/fame/famec.o: CFLAGS += -DFAMEC_NO_GOTOS -fno-var-tracking-assignments

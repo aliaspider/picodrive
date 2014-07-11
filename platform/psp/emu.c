@@ -27,11 +27,14 @@
 #define OSD_FPS_X 432
 
 // additional pspaudio imports, credits to crazyc
-int sceAudio_38553111(unsigned short samples, unsigned short freq, char unknown);  // play with conversion?
-int sceAudio_5C37C0AE(void);				// end play?
-int sceAudio_E0727056(int volume, void *buffer);	// blocking output
-int sceAudioOutput2GetRestSample();
+//int sceAudio_38553111(unsigned short samples, unsigned short freq, char unknown);  // play with conversion?
+//int sceAudio_5C37C0AE(void);				// end play?
+//int sceAudio_E0727056(int volume, void *buffer);	// blocking output
+#define sceAudio_38553111 sceAudioSRCChReserve
+#define sceAudio_5C37C0AE sceAudioSRCChRelease
+#define sceAudio_E0727056 sceAudioSRCOutputBlocking
 
+int sceAudioOutput2GetRestSample();
 
 char romFileName[PATH_MAX];
 unsigned char *PicoDraw2FB = (unsigned char *)VRAM_CACHED_STUFF + 8; // +8 to be able to skip border with 1 quadword..
