@@ -11,6 +11,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
+
 #include "fame.h"
 
 
@@ -801,10 +805,8 @@ int fm68k_emulate(s32 cycles, int dualcore, int idle_mode)
 	}
 
 #ifdef PICODRIVE_HACK
-	if (dualcore) goto dualcore_mode;
 	if      (idle_mode == 1) goto idle_install;
-	else if (idle_mode == 2) goto idle_remove;
-famec_restart:
+   else if (idle_mode == 2) goto idle_remove;
 #endif
 
 	// won't emulate double fault
@@ -914,6 +916,7 @@ famec_Exec:
 			u32 line;
 			m68kcontext.io_cycle_counter = cycles_needed;
 			cycles_needed = 0;
+//         if (m68kcontext.io_cycle_counter <= 0) goto famec_End;
 			line=interrupt_chk__();
 			if (line>0)
 			{
@@ -948,58 +951,7 @@ famec_End:
 	printf("pc: 0x%08x\n",m68kcontext.pc);
 #endif
 
-#ifdef PICODRIVE_HACK
-	if (!dualcore)
-#endif
 		return cycles - m68kcontext.io_cycle_counter;
-
-#ifdef PICODRIVE_HACK
-dualcore_mode:
-
-	while (1)
-	{
-		extern int SekCycleAim, SekCycleCnt, SekCycleAimS68k, SekCycleCntS68k;
-		#define PS_STEP_M68K ((488<<16)/20) // ~24
-		if (dualcore == 1)
-		{
-			dualcore = (488<<16); // ~ cycn in Pico.c
-			// adjust for first iteration
-			g_m68kcontext = &PicoCpuFS68k;
-			cycles = m68kcontext.io_cycle_counter = 0;
-		}
-		if (g_m68kcontext == &PicoCpuFS68k)
-		{
-			SekCycleCntS68k += cycles - m68kcontext.io_cycle_counter;
-			// end?
-			dualcore -= PS_STEP_M68K;
-			if (dualcore < 0) return 0;
-			// become main 68k
-			g_m68kcontext = &PicoCpuFM68k;
-			if ((cycles = SekCycleAim-SekCycleCnt-(dualcore>>16)) > 0)
-			{
-				if ((m68kcontext.execinfo & FM68K_HALTED) && m68kcontext.interrupts[0] <= (M68K_PPL))
-				     SekCycleCnt += cycles; // halted
-				else goto famec_restart;
-				//else { printf("go main %i\n", cycles); goto famec_restart; }
-			}
-			cycles = m68kcontext.io_cycle_counter = 0;
-		}
-		if (g_m68kcontext == &PicoCpuFM68k)
-		{
-			int cycn_s68k = (dualcore + dualcore/2 + dualcore/8) >> 16;
-			SekCycleCnt += cycles - m68kcontext.io_cycle_counter;
-			// become sub 68k
-			g_m68kcontext = &PicoCpuFS68k;
-			if ((cycles = SekCycleAimS68k-SekCycleCntS68k-cycn_s68k) > 0)
-			{
-				if ((m68kcontext.execinfo & FM68K_HALTED) && m68kcontext.interrupts[0] <= (M68K_PPL))
-				     SekCycleCntS68k += cycles; // halted
-				else goto famec_restart;
-			}
-			cycles = m68kcontext.io_cycle_counter = 0;
-		}
-	}
-#endif
 
 init_jump_table:
 {
