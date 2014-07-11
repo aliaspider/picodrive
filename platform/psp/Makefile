@@ -5,8 +5,7 @@ PSPSDK = $(shell psp-config --pspsdk-path)
 # settings
 #use_musashi = 1
 #use_mz80 = 1
-amalgamate = 0
-for_15fw = 1
+for_15fw = 0
 # :!touch platform/psp/psp.c
 
 
@@ -14,11 +13,12 @@ CFLAGS += -I../.. -I. -DNO_SYNC -D_ASM_DRAW_C_AMIPS
 CFLAGS += -Wall -Winline -G0
 #CFLAGS += -DLPRINTF_STDIO
 #CFLAGS += -pg
-ifeq ($(DEBUG),)
-CFLAGS += -O2 -ftracer -fstrength-reduce -ffast-math
+ifeq ($(DEBUG),1)
+CFLAGS += -g -O0
 else
-CFLAGS += -ggdb
+CFLAGS += -O2 -ftracer -fstrength-reduce -ffast-math
 endif
+
 ifeq "$(for_15fw)" "1"
 CFLAGS += -DFW15
 endif
@@ -29,11 +29,10 @@ OBJS += main.o emu.o mp3.o menu.o psp.o asm_utils.o
 
 # common
 OBJS += platform/common/emu.o platform/common/menu.o platform/common/fonts.o platform/common/config.o platform/common/readpng.o
+OBJS += platform/common/input.o
 
 # Pico
-ifeq "$(amalgamate)" "1"
-OBJS += ../../picoAll.o
-else
+
 OBJS += pico/area.o pico/cart.o pico/memory.o pico/misc.o pico/pico.o pico/sek.o pico/videoport.o \
 		pico/draw2.o pico/draw.o pico/patch.o pico/draw_amips.o pico/memory_amips.o \
 		pico/misc_amips.o pico/debug.o
@@ -46,12 +45,11 @@ OBJS += pico/carthw/carthw.o pico/carthw/svp/svp.o pico/carthw/svp/memory.o \
 		pico/carthw/svp/ssp16.o
 # Pico - Pico
 OBJS += pico/pico/pico.o pico/pico/memory.o pico/pico/xpcm.o
-endif
 
 # Pico - sound
-ifneq "$(amalgamate)" "1"
+
 OBJS += pico/sound/sound.o
-endif
+
 OBJS += pico/sound/mix.o
 OBJS += pico/sound/sn76496.o pico/sound/ym2612.o
 # zlib (hacked)
@@ -89,6 +87,8 @@ LIBS += -lpng -lm -lpspgu -lpsppower -lpspaudio -lpsprtc -lpspaudiocodec -lpspku
 #LIBS += -lpspprof
 LDFLAGS += -Wl,-Map=PicoDrive.map
 
+CFLAGS += -ISDK/
+LDFLAGS += -LSDK/
 
 # target
 TARGET = PicoDrive

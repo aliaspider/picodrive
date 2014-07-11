@@ -205,6 +205,7 @@ void in_set_blocking(int is_blocking)
 int in_update_keycode(int *dev_id_out, int *is_down_out, int timeout_ms)
 {
 	int result = 0, dev_id, is_down, result_menu;
+
 #ifdef IN_EVDEV
 	void **data;
 	int i, id = 0, count = 0;
@@ -224,6 +225,8 @@ int in_update_keycode(int *dev_id_out, int *is_down_out, int timeout_ms)
 			break;
 		}
 	}
+#elif defined(PSP)
+
 #else
 #error no menu read handlers
 #endif
