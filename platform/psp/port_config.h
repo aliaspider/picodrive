@@ -18,8 +18,10 @@
 #define DRAW2_OVERRIDE_LINE_WIDTH 512
 
 // pico.c
+#ifndef __LIBRETRO__
 extern void blit1(void);
 #define DRAW_FINISH_FUNC blit1
+#endif
 #define CAN_HANDLE_240_LINES	1
 
 // logging emu events

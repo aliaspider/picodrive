@@ -25,9 +25,9 @@
 #endif
 
 #include <pico/pico_int.h>
-#include <pico/state.h>
-#include "../common/input_pico.h"
-#include "../common/version.h"
+//#include <pico/state.h>
+#include "../common/input.h"
+#include "version.h"
 #include "libretro.h"
 
 static retro_log_printf_t log_cb;
@@ -41,6 +41,10 @@ static retro_audio_sample_batch_t audio_batch_cb;
 #define VOUT_MAX_HEIGHT 240
 static void *vout_buf;
 static int vout_width, vout_height, vout_offset;
+
+#ifdef PSP
+unsigned char *PicoDraw2FB = (unsigned char *)0x44100000;
+#endif
 
 #ifdef _MSC_VER
 static short sndBuffer[2*44100/50];
@@ -58,7 +62,7 @@ static void snd_write(int len);
 
 /* functions called by the core */
 
-void cache_flush_d_inval_i(void *start, void *end)
+void cache_flush_d_inval_i(const void *start, const void *end)
 {
 #ifdef __arm__
 #if defined(__BLACKBERRY_QNX__)
@@ -284,7 +288,7 @@ void emu_video_mode_change(int start_line, int line_count, int is_32cols)
 {
 	memset(vout_buf, 0, 320 * 240 * 2);
 	vout_width = is_32cols ? 256 : 320;
-	PicoDrawSetOutBuf(vout_buf, vout_width * 2);
+//	PicoDrawSetOutBuf(vout_buf, vout_width * 2);
 
 	vout_height = line_count;
 	vout_offset = vout_width * start_line;
@@ -445,42 +449,44 @@ int state_fseek(void *file, long offset, int whence)
  * carthw is active, so run the whole thing to get size */
 size_t retro_serialize_size(void) 
 { 
-	struct savestate_state state = { 0, };
-	int ret;
+//	struct savestate_state state = { 0, };
+//	int ret;
 
-	ret = PicoStateFP(&state, 1, NULL, state_skip, NULL, state_fseek);
-	if (ret != 0)
+//	ret = PicoStateFP(&state, 1, NULL, state_skip, NULL, state_fseek);
+//	if (ret != 0)
 		return 0;
 
-	return state.pos;
+//	return state.pos;
 }
 
 bool retro_serialize(void *data, size_t size)
 { 
-	struct savestate_state state = { 0, };
-	int ret;
+//	struct savestate_state state = { 0, };
+//	int ret;
 
-	state.save_buf = data;
-	state.size = size;
-	state.pos = 0;
+//	state.save_buf = data;
+//	state.size = size;
+//	state.pos = 0;
 
-	ret = PicoStateFP(&state, 1, NULL, state_write,
-		NULL, state_fseek);
-	return ret == 0;
+//	ret = PicoStateFP(&state, 1, NULL, state_write,
+//		NULL, state_fseek);
+//	return ret == 0;
+   return false;
 }
 
 bool retro_unserialize(const void *data, size_t size)
 {
-	struct savestate_state state = { 0, };
-	int ret;
+//	struct savestate_state state = { 0, };
+//	int ret;
 
-	state.load_buf = data;
-	state.size = size;
-	state.pos = 0;
+//	state.load_buf = data;
+//	state.size = size;
+//	state.pos = 0;
 
-	ret = PicoStateFP(&state, 0, state_read, NULL,
-		state_eof, state_fseek);
-	return ret == 0;
+//	ret = PicoStateFP(&state, 0, state_read, NULL,
+//		state_eof, state_fseek);
+//	return ret == 0;
+   return false;
 }
 
 /* cheats - TODO */
@@ -519,7 +525,7 @@ static unsigned int disk_get_image_index(void)
 
 static bool disk_set_image_index(unsigned int index)
 {
-	enum cd_img_type cd_type;
+   cd_img_type cd_type;
 	int ret;
 
 	if (index >= sizeof(disks) / sizeof(disks[0]))
@@ -539,15 +545,16 @@ static bool disk_set_image_index(unsigned int index)
       log_cb(RETRO_LOG_INFO, "switching to disk %u: \"%s\"\n", index,
             disks[index].fname);
 
-	ret = -1;
-	cd_type = PicoCdCheck(disks[index].fname, NULL);
-	if (cd_type != CIT_NOT_CD)
-		ret = cdd_load(disks[index].fname, cd_type);
-	if (ret != 0) {
-      if (log_cb)
-         log_cb(RETRO_LOG_ERROR, "Load failed, invalid CD image?\n");
-		return 0;
-	}
+//	ret = -1;
+//	cd_type = PicoCdCheck(disks[index].fname, NULL);
+//   cd_type = emu_cdCheck(NULL, disks[index].fname);
+//	if (cd_type != CIT_NOT_CD)
+//		ret = cdd_load(disks[index].fname, cd_type);
+//	if (ret != 0) {
+//      if (log_cb)
+//         log_cb(RETRO_LOG_ERROR, "Load failed, invalid CD image?\n");
+//		return 0;
+//	}
 
 	disk_current_index = index;
 	return true;
@@ -681,66 +688,66 @@ static const char *find_bios(int *region, const char *cd_fname)
 
 bool retro_load_game(const struct retro_game_info *info)
 {
-	enum media_type_e media_type;
-	static char carthw_path[256];
-	size_t i;
+//   media_type_e media_type;
+//	static char carthw_path[256];
+//	size_t i;
 
-	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
-	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
-      if (log_cb)
-         log_cb(RETRO_LOG_ERROR, "RGB565 support required, sorry\n");
-		return false;
-	}
+//	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
+//	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
+//      if (log_cb)
+//         log_cb(RETRO_LOG_ERROR, "RGB565 support required, sorry\n");
+//		return false;
+//	}
 
-	if (info == NULL || info->path == NULL) {
-      if (log_cb)
-         log_cb(RETRO_LOG_ERROR, "info->path required\n");
-		return false;
-	}
+//	if (info == NULL || info->path == NULL) {
+//      if (log_cb)
+//         log_cb(RETRO_LOG_ERROR, "info->path required\n");
+//		return false;
+//	}
 
-	for (i = 0; i < sizeof(disks) / sizeof(disks[0]); i++) {
-		if (disks[i].fname != NULL) {
-			free(disks[i].fname);
-			disks[i].fname = NULL;
-		}
-	}
+//	for (i = 0; i < sizeof(disks) / sizeof(disks[0]); i++) {
+//		if (disks[i].fname != NULL) {
+//			free(disks[i].fname);
+//			disks[i].fname = NULL;
+//		}
+//	}
 
-	disk_current_index = 0;
-	disk_count = 1;
-	disks[0].fname = strdup(info->path);
+//	disk_current_index = 0;
+//	disk_count = 1;
+//	disks[0].fname = strdup(info->path);
 
-	make_system_path(carthw_path, sizeof(carthw_path), "carthw", ".cfg");
+//	make_system_path(carthw_path, sizeof(carthw_path), "carthw", ".cfg");
 
-	media_type = PicoLoadMedia(info->path, carthw_path,
-			find_bios, NULL);
+//	media_type = PicoLoadMedia(info->path, carthw_path,
+//			find_bios, NULL);
 
-	switch (media_type) {
-	case PM_BAD_DETECT:
-      if (log_cb)
-         log_cb(RETRO_LOG_ERROR, "Failed to detect ROM/CD image type.\n");
-		return false;
-	case PM_BAD_CD:
-      if (log_cb)
-         log_cb(RETRO_LOG_ERROR, "Invalid CD image\n");
-		return false;
-	case PM_BAD_CD_NO_BIOS:
-      if (log_cb)
-         log_cb(RETRO_LOG_ERROR, "Missing BIOS\n");
-		return false;
-	case PM_ERROR:
-      if (log_cb)
-         log_cb(RETRO_LOG_ERROR, "Load error\n");
-		return false;
-	default:
-		break;
-	}
+//	switch (media_type) {
+//	case PM_BAD_DETECT:
+//      if (log_cb)
+//         log_cb(RETRO_LOG_ERROR, "Failed to detect ROM/CD image type.\n");
+//		return false;
+//	case PM_BAD_CD:
+//      if (log_cb)
+//         log_cb(RETRO_LOG_ERROR, "Invalid CD image\n");
+//		return false;
+//	case PM_BAD_CD_NO_BIOS:
+//      if (log_cb)
+//         log_cb(RETRO_LOG_ERROR, "Missing BIOS\n");
+//		return false;
+//	case PM_ERROR:
+//      if (log_cb)
+//         log_cb(RETRO_LOG_ERROR, "Load error\n");
+//		return false;
+//	default:
+//		break;
+//	}
 
-	PicoLoopPrepare();
+//	PicoLoopPrepare();
 
-	PicoWriteSound = snd_write;
-	memset(sndBuffer, 0, sizeof(sndBuffer));
-	PsndOut = sndBuffer;
-	PsndRerate(0);
+//	PicoWriteSound = snd_write;
+//	memset(sndBuffer, 0, sizeof(sndBuffer));
+//	PsndOut = sndBuffer;
+//	PsndRerate(0);
 
 	return true;
 }
@@ -772,25 +779,25 @@ void *retro_get_memory_data(unsigned id)
 
 size_t retro_get_memory_size(unsigned id)
 {
-	unsigned int i;
-	int sum;
+//	unsigned int i;
+//	int sum;
 
-	if (id != RETRO_MEMORY_SAVE_RAM)
-		return 0;
+//	if (id != RETRO_MEMORY_SAVE_RAM)
+//		return 0;
 
-	if (PicoAHW & PAHW_MCD)
-		// bram
-		return 0x2000;
+//	if (PicoAHW & PAHW_MCD)
+//		// bram
+//		return 0x2000;
 
-	if (Pico.m.frame_count == 0)
-		return SRam.size;
+//	if (Pico.m.frame_count == 0)
+//		return SRam.size;
 
-	// if game doesn't write to sram, don't report it to
-	// libretro so that RA doesn't write out zeroed .srm
-	for (i = 0, sum = 0; i < SRam.size; i++)
-		sum |= SRam.data[i];
+//	// if game doesn't write to sram, don't report it to
+//	// libretro so that RA doesn't write out zeroed .srm
+//	for (i = 0, sum = 0; i < SRam.size; i++)
+//		sum |= SRam.data[i];
 
-	return (sum != 0) ? SRam.size : 0;
+//	return (sum != 0) ? SRam.size : 0;
 }
 
 void retro_reset(void)
@@ -799,18 +806,19 @@ void retro_reset(void)
 }
 
 static const unsigned short retro_pico_map[] = {
-	1 << GBTN_B,
-	1 << GBTN_A,
-	1 << GBTN_MODE,
-	1 << GBTN_START,
-	1 << GBTN_UP,
-	1 << GBTN_DOWN,
-	1 << GBTN_LEFT,
-	1 << GBTN_RIGHT,
-	1 << GBTN_C,
-	1 << GBTN_Y,
-	1 << GBTN_X,
-	1 << GBTN_Z,
+//	1 << GBTN_B,
+//	1 << GBTN_A,
+//	1 << GBTN_MODE,
+//	1 << GBTN_START,
+//	1 << GBTN_UP,
+//	1 << GBTN_DOWN,
+//	1 << GBTN_LEFT,
+//	1 << GBTN_RIGHT,
+//	1 << GBTN_C,
+//	1 << GBTN_Y,
+//	1 << GBTN_X,
+//	1 << GBTN_Z,
+   0,
 };
 #define RETRO_PICO_MAP_LEN (sizeof(retro_pico_map) / sizeof(retro_pico_map[0]))
 
@@ -819,33 +827,33 @@ static void snd_write(int len)
 	audio_batch_cb(PsndOut, len / 4);
 }
 
-static enum input_device input_name_to_val(const char *name)
-{
-	if (strcmp(name, "3 button pad") == 0)
-		return PICO_INPUT_PAD_3BTN;
-	if (strcmp(name, "6 button pad") == 0)
-		return PICO_INPUT_PAD_6BTN;
-	if (strcmp(name, "None") == 0)
-		return PICO_INPUT_NOTHING;
+//static enum input_device input_name_to_val(const char *name)
+//{
+//	if (strcmp(name, "3 button pad") == 0)
+//		return PICO_INPUT_PAD_3BTN;
+//	if (strcmp(name, "6 button pad") == 0)
+//		return PICO_INPUT_PAD_6BTN;
+//	if (strcmp(name, "None") == 0)
+//		return PICO_INPUT_NOTHING;
 
-   if (log_cb)
-      log_cb(RETRO_LOG_WARN, "invalid picodrive_input: '%s'\n", name);
-	return PICO_INPUT_PAD_3BTN;
-}
+//   if (log_cb)
+//      log_cb(RETRO_LOG_WARN, "invalid picodrive_input: '%s'\n", name);
+//	return PICO_INPUT_PAD_3BTN;
+//}
 
 static void update_variables(void)
 {
 	struct retro_variable var;
 
-	var.value = NULL;
-	var.key = "picodrive_input1";
-	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-		PicoSetInputDevice(0, input_name_to_val(var.value));
+//	var.value = NULL;
+//	var.key = "picodrive_input1";
+//	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+//		PicoSetInputDevice(0, input_name_to_val(var.value));
 
-	var.value = NULL;
-	var.key = "picodrive_input2";
-	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
-		PicoSetInputDevice(1, input_name_to_val(var.value));
+//	var.value = NULL;
+//	var.key = "picodrive_input2";
+//	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+//		PicoSetInputDevice(1, input_name_to_val(var.value));
 
 	var.value = NULL;
 	var.key = "picodrive_sprlim";
@@ -923,7 +931,7 @@ void retro_init(void)
 
 	PicoOpt = POPT_EN_STEREO|POPT_EN_FM|POPT_EN_PSG|POPT_EN_Z80
 		| POPT_EN_MCD_PCM|POPT_EN_MCD_CDDA|POPT_EN_MCD_GFX
-		| POPT_EN_32X|POPT_EN_PWM
+//		| POPT_EN_32X|POPT_EN_PWM
 		| POPT_ACC_SPRITES|POPT_DIS_32C_BORDER;
 #ifdef __arm__
 	PicoOpt |= POPT_EN_DRC;
@@ -936,8 +944,9 @@ void retro_init(void)
 	vout_buf = malloc(VOUT_MAX_WIDTH * VOUT_MAX_HEIGHT * 2);
 
 	PicoInit();
-	PicoDrawSetOutFormat(PDF_RGB555, 0);
-	PicoDrawSetOutBuf(vout_buf, vout_width * 2);
+   PicoDrawSetColorFormat(1); // 0=BGR444, 1=RGB555, 2=8bit(HighPal pal)
+//	PicoDrawSetOutFormat(PDF_RGB555, 0);
+//	PicoDrawSetOutBuf(vout_buf, vout_width * 2);
 
 	//PicoMessage = plat_status_msg_busy_next;
 	PicoMCDopenTray = disk_tray_open;

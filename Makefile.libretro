@@ -45,7 +45,9 @@ OBJS += pico/pico/pico.o pico/pico/memory.o pico/pico/xpcm.o
 
 # Pico - sound
 
-#OBJS += pico/sound/sound.o
+OBJS += pico/sound/sound.o
+OBJS += platform/psp/mp3.o
+
 OBJS += pico/sound/mix.o
 OBJS += pico/sound/sn76496.o pico/sound/ym2612.o
 
@@ -54,10 +56,11 @@ OBJS += pico/sound/sn76496.o pico/sound/ym2612.o
 #	zlib/deflate.o zlib/crc32.o zlib/adler32.o zlib/zutil.o zlib/compress.o \
 #	zlib/uncompr.o
 # unzip
-#OBJS += unzip/unzip.o unzip/unzip_stream.o
+OBJS += unzip/unzip.o unzip/unzip_stream.o
+OBJS += zlib/gzio.o
 
 OBJS += libretro.o
-CFLAGS += -DNO_MMAP
+CFLAGS += -D__LIBRETRO__ -DNO_MMAP
 
 # CPU cores
 ifeq "$(use_musashi)" "1"
@@ -77,13 +80,20 @@ CFLAGS += -D_USE_CZ80
 OBJS += cpu/cz80/cz80.o
 endif
 
-DIRS = platform platform/psp platform/common pico pico/cd pico/pico pico/sound pico/carthw/svp \
-	zlib unzip cpu cpu/musashi cpu/fame cpu/mz80 cpu/cz80
+
+INCDIRS  = -I. -Iplatform/psp
+INCDIRS += -I$(shell psp-config --pspsdk-path)/include
+#-Iplatform -Iplatform/psp -Iplatform/common -Ipico -Ipico/cd -Ipico/pico -Ipico/sound -Ipico/carthw/svp -Izlib -Iunzip -Icpu -Icpu/musashi -Icpu/fame -Icpu/mz80 -Icpu/cz80
+
+KU_OBJS  = KUBridge_0000.o KUBridge_0001.o KUBridge_0002.o KUBridge_0003.o KUBridge_0004.o KUBridge_0005.o KUBridge_0006.o KUBridge_0007.o KUBridge_0008.o KUBridge_0009.o KUBridge_0010.o KUBridge_0011.o KUBridge_0012.o KUBridge_0013.o KUBridge_0014.o KUBridge_0015.o KUBridge_0016.o KUBridge_0017.o
+INCDIRS += -Iplatform/psp/SDK
+OBJS += $(KU_OBJS)
 
 
+CFLAGS += $(INCDIRS)
 #LIBS += -lpng -lm -lpspgu -lpsppower -lpspaudio -lpsprtc -lpspaudiocodec -lpspkubridge
 
-
+all: $(TARGET)
 
 $(TARGET): $(OBJS)
 		$(AR) rcs $@ $(OBJS)
@@ -97,40 +107,44 @@ $(TARGET): $(OBJS)
 	@echo ">>>" $<
 	$(AS) -march=allegrex -mtune=allegrex $< -o $@
 
-../../cpu/musashi/m68kops.c :
-	make -C ../../cpu/musashi
+cpu/musashi/m68kops.c :
+	make -C cpu/musashi
 
-cpu/fame/famec.o : ../../cpu/fame/famec.c
+cpu/fame/famec.o : cpu/fame/famec.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -Wno-unused -c $< -o $@
 
-pico/misc.o : ../../pico/misc.c
+pico/misc.o : pico/misc.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -c $< -o $@ -D_ASM_MISC_C_AMIPS
 
-pico/memory.o : ../../pico/memory.c
+pico/memory.o : pico/memory.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -O2 -c $< -o $@ -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
 
-pico/cd/memory.o : ../../pico/cd/memory.c
+pico/cd/memory.o : pico/cd/memory.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -O2 -c $< -o $@
 
-pico/cd/gfx_cd.o : ../../pico/cd/gfx_cd.c
+pico/cd/gfx_cd.o : pico/cd/gfx_cd.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -O2 -c $< -o $@
 
-readme.txt: ../../tools/textfilter ../base_readme.txt
-	../../tools/textfilter ../base_readme.txt $@ PSP
+readme.txt: tools/textfilter ../base_readme.txt
+	tools/textfilter ../base_readme.txt $@ PSP
 
-../../tools/textfilter: ../../tools/textfilter.c
-	make -C ../../tools/ textfilter
+tools/textfilter: tools/textfilter.c
+	make -C tools/ textfilter
 
 data/bg32.o: data/bg32.bin
 	bin2o -i $< $@ bgdatac32
 
 data/bg40.o: data/bg40.bin
 	bin2o -i $< $@ bgdatac40
+
+vpath %.S = platform/psp/SDK
+$(KU_OBJS): KUBridge.S
+	$(CC) $(CFLAGS) -DF_$* $< -c -o $@
 
 clean:
 		$(RM) $(TARGET) $(OBJS)
