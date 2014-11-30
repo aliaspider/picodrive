@@ -25,9 +25,9 @@
 #endif
 
 #include <pico/pico_int.h>
+#include "platform/psp/port_config.h"
 //#include <pico/state.h>
 #include "../common/input.h"
-#include "version.h"
 #include "libretro.h"
 
 static retro_log_printf_t log_cb;

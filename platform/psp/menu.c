@@ -18,12 +18,10 @@
 #include <psputils.h>
 
 #include "psp.h"
-#include "emu.h"
+#include "psp_emu.h"
 #include "menu.h"
 #include "../common/menu.h"
 #include "../common/emu.h"
-#include "../common/lprintf.h"
-#include "version.h"
 
 #include <pico/pico_int.h>
 #include <pico/patch.h>

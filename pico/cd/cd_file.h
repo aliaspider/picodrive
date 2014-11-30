@@ -7,8 +7,6 @@ extern "C" {
 
 #define TYPE_ISO 1
 #define TYPE_BIN 2
-#define TYPE_MP3 3
-#define TYPE_WAV 4
 
 typedef enum
 {

@@ -5,12 +5,11 @@
 
 #include <string.h>
 #include "psp.h"
-#include "emu.h"
+#include "psp_emu.h"
 #include "menu.h"
 #include "../common/menu.h"
 #include "../common/emu.h"
 #include "../common/config.h"
-#include "../common/lprintf.h"
 
 int pico_main(const char *fileName)
 {

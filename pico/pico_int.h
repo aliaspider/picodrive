@@ -568,7 +568,9 @@ extern int PsndDacLine;
 #define EL_ANOMALY 0x80000000 /* some unexpected conditions (during emulation) */
 
 #if EL_LOGMASK
+#ifndef lprintf
 extern void lprintf(const char *fmt, ...);
+#endif
 #define elprintf(w,f,...) \
 { \
 	if ((w) & EL_LOGMASK) \

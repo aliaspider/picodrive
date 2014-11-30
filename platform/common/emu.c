@@ -6,16 +6,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h> // tolower
-#ifndef NO_SYNC
-#include <unistd.h>
-#endif
 
 #include "emu.h"
 #include "menu.h"
 #include "fonts.h"
-#include "lprintf.h"
 #include "config.h"
-#include "common.h"
 
 #include <pico/pico_int.h>
 #include <pico/patch.h>
@@ -643,10 +638,8 @@ int emu_WriteConfig(int is_game)
 	lprintf("emu_WriteConfig: %s ", cfg);
 	ret = config_writesect(cfg, game_sect);
 	if (write_lrom) config_writelrom(cfg);
-#ifndef NO_SYNC
-	sync();
-#endif
-	lprintf((ret == 0) ? "(ok)\n" : "(failed)\n");
+
+   lprintf((ret == 0) ? "(ok)\n" : "(failed)\n");
 
 	if (ret == 0) config_slot_current = config_slot;
 	return ret == 0;
@@ -658,9 +651,7 @@ void emu_writelrom(void)
 	char cfg[512];
 	make_config_cfg(cfg);
 	config_writelrom(cfg);
-#ifndef NO_SYNC
-	sync();
-#endif
+
 }
 
 #ifndef UIQ3
@@ -913,9 +904,6 @@ int emu_SaveLoadGame(int load, int sram)
 				ret = fwrite(sram_data, 1, sram_size, sramFile);
 				ret = (ret != sram_size) ? -1 : 0;
 				fclose(sramFile);
-#ifndef NO_SYNC
-				sync();
-#endif
 			}
 		}
 		return ret;
@@ -932,9 +920,6 @@ int emu_SaveLoadGame(int load, int sram)
 			areaClose(PmovFile);
 			PmovFile = 0;
 			if (load) Pico.m.dirtyPal=1;
-#ifndef NO_SYNC
-			else sync();
-#endif
 		}
 		else	ret = -1;
 		if (!ret)

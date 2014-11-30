@@ -10,8 +10,6 @@
 
 #include "menu.h"
 #include "fonts.h"
-#include "lprintf.h"
-#include "common.h"
 #include "emu.h"
 
 

@@ -17,10 +17,9 @@
 #include <pspgu.h>
 #include <pspsdk.h>
 
+#include "../common/emu.h"
 #include "psp.h"
-#include "emu.h"
-#include "../common/lprintf.h"
-#include "version.h"
+#include "psp_emu.h"
 
 extern int pico_main(const char* fileName);
 
@@ -310,74 +309,5 @@ typedef struct _log_entry
 
 static log_entry* le_root = NULL;
 #endif
-
-/* strange: if this function leaks memory (before psp_init() call?),
- * resume after suspend breaks on 3.90 */
-void lprintf(const char* fmt, ...)
-{
-   va_list vl;
-
-#ifdef LPRINTF_STDIO
-   va_start(vl, fmt);
-   vprintf(fmt, vl);
-   va_end(vl);
-#else
-   static SceUID logfd = -1;
-   static int msg_count = 0;
-   char buff[256];
-   log_entry* le, *le1;
-
-   if (logfd == -2) return; // disabled
-
-   va_start(vl, fmt);
-   vsnprintf(buff, sizeof(buff), fmt, vl);
-   va_end(vl);
-
-   // note: this is still unsafe code
-   if (main_thread_id != sceKernelGetThreadId())
-   {
-      le = malloc(sizeof(*le));
-      if (le == NULL) return;
-      le->next = NULL;
-      strcpy(le->buff, buff);
-      if (le_root == NULL) le_root = le;
-      else
-      {
-         for (le1 = le_root; le1->next != NULL; le1 = le1->next);
-         le1->next = le;
-      }
-      return;
-   }
-
-   logfd = sceIoOpen(LOG_FILE, PSP_O_WRONLY | PSP_O_APPEND, 0777);
-   if (logfd < 0)
-   {
-      if (msg_count == 0) logfd = -2;
-      return;
-   }
-
-   if (le_root != NULL)
-   {
-      le1 = le_root;
-      le_root = NULL;
-      sceKernelDelayThread(1000);
-      while (le1 != NULL)
-      {
-         le = le1;
-         le1 = le->next;
-         sceIoWrite(logfd, le->buff, strlen(le->buff));
-         free(le);
-         msg_count++;
-      }
-   }
-
-   sceIoWrite(logfd, buff, strlen(buff));
-   msg_count++;
-
-   // make sure it gets flushed
-   sceIoClose(logfd);
-   logfd = -1;
-#endif
-}
 
 

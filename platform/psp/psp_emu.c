@@ -15,11 +15,10 @@
 
 #include "psp.h"
 #include "menu.h"
-#include "emu.h"
+#include "psp_emu.h"
 #include "asm_utils.h"
 #include "../common/emu.h"
 #include "../common/config.h"
-#include "../common/lprintf.h"
 #include <pico/pico_int.h>
 #include <pico/cd/cue.h>
 

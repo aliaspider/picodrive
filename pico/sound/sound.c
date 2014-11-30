@@ -235,7 +235,7 @@ static void cdda_raw_update(int *buffer, int length)
 
 PICO_INTERNAL void cdda_start_play(void)
 {
-  int lba_offset, index, lba_length, i;
+  int lba_offset, index, i;
 
   elprintf(EL_STATUS, "cdda play track #%i", Pico_mcd->scd.Cur_Track);
 
@@ -254,31 +254,9 @@ PICO_INTERNAL void cdda_start_play(void)
     return;
   }
 
-//  if (Pico_mcd->TOC.Tracks[i].ftype == TYPE_MP3)
-//  {
-//    int pos1024 = 0;
-
-//    lba_length = Pico_mcd->TOC.Tracks[i].Length;
-//    for (i++; i < Pico_mcd->TOC.Last_Track; i++) {
-//      if (Pico_mcd->TOC.Tracks[i].F != NULL) break;
-//      lba_length += Pico_mcd->TOC.Tracks[i].Length;
-//    }
-
-//    if (lba_offset)
-//      pos1024 = lba_offset * 1024 / lba_length;
-
-//    mp3_start_play(Pico_mcd->TOC.Tracks[index].F, pos1024);
-//    return;
-//  }
-
   cdda_stream = Pico_mcd->TOC.Tracks[i].F;
   PicoCDBufferFlush(); // buffering relies on fp not being touched
   pm_seek(cdda_stream, lba_offset * 2352, SEEK_SET);
-  if (Pico_mcd->TOC.Tracks[i].ftype == TYPE_WAV)
-  {
-    // skip headers, assume it's 44kHz stereo uncompressed
-    pm_seek(cdda_stream, 44, SEEK_CUR);
-  }
 }
 
 

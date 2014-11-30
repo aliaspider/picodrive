@@ -3,6 +3,8 @@
 #ifndef PORT_CONFIG_H
 #define PORT_CONFIG_H
 
+#define VERSION "1.51b"
+
 #define CASE_SENSITIVE_FS 0
 #define DONT_OPEN_MANY_FILES 1 // work around the stupid PSP ~10 open file limit
 #define REDUCE_IO_CALLS 1      // another workaround
@@ -35,5 +37,13 @@ extern void blit1(void);
 #define PLAT_HAVE_JOY 0
 #define PATH_SEP      "/"
 #define PATH_SEP_C    '/'
+
+#ifdef __LIBRETRO__
+void lprintf(const char *fmt, ...);
+#elif defined(PSP)
+#define lprintf printf
+#include "psp.h"
+#endif
+
 
 #endif //PORT_CONFIG_H

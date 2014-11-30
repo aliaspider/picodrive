@@ -11,53 +11,6 @@
 #include "cd_file.h"
 #include "cue.h"
 
-//#define cdprintf(f,...) printf(f "\n",##__VA_ARGS__) // tmp
-
-//static int audio_track_mp3(const char *fname, int index)
-//{
-//	_scd_track *Tracks = Pico_mcd->TOC.Tracks;
-//	FILE *tmp_file;
-//	int fs, ret;
-
-//	tmp_file = fopen(fname, "rb");
-//	if (tmp_file == NULL)
-//		return -1;
-
-//	ret = fseek(tmp_file, 0, SEEK_END);
-//	fs = ftell(tmp_file);				// used to calculate length
-//	fseek(tmp_file, 0, SEEK_SET);
-
-//#if DONT_OPEN_MANY_FILES
-//	// some systems (like PSP) can't have many open files at a time,
-//	// so we work with their names instead.
-//	fclose(tmp_file);
-//	tmp_file = (void *) strdup(fname);
-//#endif
-//	Tracks[index].KBtps = (short) mp3_get_bitrate(tmp_file, fs);
-//	Tracks[index].KBtps >>= 3;
-//	if (ret != 0 || Tracks[index].KBtps <= 0)
-//	{
-//		elprintf(EL_STATUS, "track %2i: mp3 bitrate %i", index+1, Tracks[index].KBtps);
-//#if !DONT_OPEN_MANY_FILES
-//		fclose(tmp_file);
-//#else
-//		free(tmp_file);
-//#endif
-//		return -1;
-//	}
-
-//	Tracks[index].F = tmp_file;
-
-//	// MP3 File
-//	Tracks[index].ftype = TYPE_MP3;
-//	fs *= 75;
-//	fs /= Tracks[index].KBtps * 1000;
-//	Tracks[index].Length = fs;
-//	Tracks[index].Offset = 0;
-
-//	return 0;
-//}
-
 PICO_INTERNAL int Load_CD_Image(const char *cd_img_name, cd_img_type type)
 {
 	int i, j, num_track, Cur_LBA, index, ret, iso_name_len, missed, cd_img_sectors;
@@ -233,19 +186,9 @@ PICO_INTERNAL void Unload_ISO(void)
 	if (Pico_mcd->TOC.Tracks[0].F) pm_close(Pico_mcd->TOC.Tracks[0].F);
 
 	for(i = 1; i < 100; i++)
-	{
 		if (Pico_mcd->TOC.Tracks[i].F != NULL)
-		{
-			if (Pico_mcd->TOC.Tracks[i].ftype == TYPE_MP3)
-#if DONT_OPEN_MANY_FILES
-				free(Pico_mcd->TOC.Tracks[i].F);
-#else
-				fclose(Pico_mcd->TOC.Tracks[i].F);
-#endif
-			else
-				pm_close(Pico_mcd->TOC.Tracks[i].F);
-		}
-	}
+         pm_close(Pico_mcd->TOC.Tracks[i].F);
+
 	memset(Pico_mcd->TOC.Tracks, 0, sizeof(Pico_mcd->TOC.Tracks));
 }
 

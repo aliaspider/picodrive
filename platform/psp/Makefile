@@ -1,4 +1,3 @@
-
 # pspdev is expected to be in path
 PSPSDK = $(shell psp-config --pspsdk-path)
 
@@ -9,7 +8,7 @@ for_15fw = 0
 # :!touch platform/psp/psp.c
 
 
-CFLAGS += -I../.. -I. -DNO_SYNC -D_ASM_DRAW_C_AMIPS
+CFLAGS += -I../.. -I. -D_ASM_DRAW_C_AMIPS
 CFLAGS += -Wall -Winline -G0
 #CFLAGS += -DLPRINTF_STDIO
 #CFLAGS += -pg
@@ -25,7 +24,7 @@ endif
 
 
 # frontend and stuff
-OBJS += main.o emu.o menu.o psp.o asm_utils.o
+OBJS += main.o psp_emu.o menu.o psp.o asm_utils.o
 
 # common
 OBJS += platform/common/emu.o platform/common/menu.o platform/common/fonts.o platform/common/config.o
@@ -72,9 +71,6 @@ endif
 
 vpath %.c = ../..
 vpath %.s = ../..
-DIRS = platform platform/psp platform/common pico pico/cd pico/pico pico/sound pico/carthw/svp \
-	cpu cpu/musashi cpu/fame cpu/mz80 cpu/cz80
-
 
 LIBS += -lm -lpspgu -lpsppower -lpspaudio -lpsprtc
 LDFLAGS += -Wl,-Map=PicoDrive.map
@@ -84,7 +80,7 @@ LDFLAGS += -LSDK/
 
 # target
 TARGET = PicoDrive
-EXTRA_TARGETS = mkdirs EBOOT.PBP
+EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = PicoDrive
 PSP_EBOOT_ICON = data/icon.png
 
@@ -95,10 +91,6 @@ endif
 CUSTOM_CLEAN = myclean
 
 include $(PSPSDK)/lib/build.mak
-
-# some additional rules
-mkdirs:
-	mkdir -p $(DIRS)
 
 .c.o:
 	@echo ">>>" $<
@@ -133,55 +125,8 @@ pico/cd/gfx_cd.o : ../../pico/cd/gfx_cd.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -c $< -o $@
 
-readme.txt: ../../tools/textfilter ../base_readme.txt
-	../../tools/textfilter ../base_readme.txt $@ PSP
-
-../../tools/textfilter: ../../tools/textfilter.c
-	make -C ../../tools/ textfilter
-
-#
-ifndef UPDIR
-UPDIR = /media/disk/PSP/GAME/PicoDrive/
-endif
-up: EBOOT.PBP
-	@cp -v $^ $(UPDIR)
-
-
 # cleanup
 
 myclean:
-	#rm -rf $(DIRS)
 	$(RM) PicoDrive.map
 	make -C ../../cpu/musashi clean
-
-
-clean_prof:
-	find ../.. -name '*.gcno' -delete
-	find ../.. -name '*.gcda' -delete
-
-# ----------- release -----------
-ifneq ($(findstring rel,$(MAKECMDGOALS)),)
-ifeq ($(VER),)
-$(error need VER)
-endif
-endif
-
-# ?
-rel: EBOOT.PBP readme.txt ../game_def.cfg
-	cp $^ PicoDrive/
-	zip -9 -r ../../PicoDrive_psp_$(VER).zip PicoDrive
-	rm -rf PicoDrive
-	mkdir bin_to_cso_mp3
-	cp ../../tools/bin_to_cso_mp3/* bin_to_cso_mp3/
-	zip -9 -r ../../PicoDrive_psp_$(VER).zip bin_to_cso_mp3
-	rm -rf bin_to_cso_mp3
-
-rel_kxploit: readme.txt ../game_def.cfg
-	cp $^ PicoDrive/
-	zip -9 -r ../../PicoDrive_psp_$(VER)_kxploit.zip PicoDrive
-	zip -9 -r ../../PicoDrive_psp_$(VER)_kxploit.zip PicoDrive%
-	mkdir bin_to_cso_mp3
-	cp ../../tools/bin_to_cso_mp3/* bin_to_cso_mp3/
-	zip -9 -r ../../PicoDrive_psp_$(VER)_kxploit.zip bin_to_cso_mp3
-	rm -rf bin_to_cso_mp3
-

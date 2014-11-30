@@ -11,7 +11,6 @@
 #endif
 #include "config.h"
 #include "input.h"
-#include "lprintf.h"
 
 static char *mystrip(char *str);
 
