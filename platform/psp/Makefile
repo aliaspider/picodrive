@@ -2,7 +2,6 @@
 PSPSDK = $(shell psp-config --pspsdk-path)
 
 # settings
-#use_musashi = 1
 #use_mz80 = 1
 for_15fw = 0
 # :!touch platform/psp/psp.c
@@ -53,14 +52,7 @@ OBJS += pico/sound/mix.o
 OBJS += pico/sound/sn76496.o pico/sound/ym2612.o
 
 # CPU cores
-ifeq "$(use_musashi)" "1"
-CFLAGS += -DEMU_M68K
-OBJS += cpu/musashi/m68kops.o cpu/musashi/m68kcpu.o
-else
-CFLAGS += -DEMU_F68K
-OBJS += cpu/fame/famec.o
-endif
-# z80
+
 ifeq "$(use_mz80)" "1"
 CFLAGS += -D_USE_MZ80
 OBJS += cpu/mz80/mz80.o
@@ -69,11 +61,17 @@ CFLAGS += -D_USE_CZ80
 OBJS += cpu/cz80/cz80.o
 endif
 
+OBJS_BASE := $(OBJS)
+
+CFLAGS += -DEMU_F68K
+OBJS += cpu/fame/famec.o
+
+
 vpath %.c = ../..
 vpath %.s = ../..
 
 LIBS += -lm -lpspgu -lpsppower -lpspaudio -lpsprtc
-LDFLAGS += -Wl,-Map=PicoDrive.map
+LDFLAGS +=
 
 CFLAGS += -ISDK/
 LDFLAGS += -LSDK/
@@ -88,8 +86,6 @@ ifneq "$(for_15fw)" "1"
 BUILD_PRX = 1
 endif
 
-CUSTOM_CLEAN = myclean
-
 include $(PSPSDK)/lib/build.mak
 
 .c.o:
@@ -102,8 +98,6 @@ AS := psp-as
 	@echo ">>>" $<
 	$(AS) -march=allegrex -mtune=allegrex $< -o $@
 
-../../cpu/musashi/m68kops.c :
-	make -C ../../cpu/musashi
 
 cpu/fame/famec.o : ../../cpu/fame/famec.c
 	@echo ">>>" $<
@@ -127,6 +121,5 @@ pico/cd/gfx_cd.o : ../../pico/cd/gfx_cd.c
 
 # cleanup
 
-myclean:
-	$(RM) PicoDrive.map
-	make -C ../../cpu/musashi clean
+fast_clean:
+	$(RM) $(OBJS_BASE)
