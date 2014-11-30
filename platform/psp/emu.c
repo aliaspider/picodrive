@@ -687,27 +687,18 @@ static void sound_deinit(void)
 
 static void writeSound(int len)
 {
-	int ret;
 	if (PicoOpt&8) len<<=1;
 
 	PsndOut += len;
-	/*if (PsndOut > sndBuffer_endptr) {
-		memcpy32((int *)(void *)sndBuffer, (int *)endptr, (PsndOut - endptr + 1) / 2);
-		PsndOut = &sndBuffer[PsndOut - endptr];
-		lprintf("mov\n");
-	}
-	else*/
+
 	if (PsndOut > sndBuffer_endptr) lprintf("snd oflow %i!\n", PsndOut - sndBuffer_endptr);
 	if (PsndOut >= sndBuffer_endptr)
 		PsndOut = sndBuffer;
 
 	// signal the snd thread
 	samples_made += len;
-	if (samples_made - samples_done > samples_block*2) {
-		// lprintf("signal, %i/%i\n", samples_done, samples_made);
-		ret = sceKernelSignalSema(sound_sem, 1);
-		//if (ret < 0) lprintf("snd signal ret %08x\n", ret);
-	}
+   if (samples_made - samples_done > samples_block*2)
+      sceKernelSignalSema(sound_sem, 1);
 }
 
 

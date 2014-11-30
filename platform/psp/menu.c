@@ -749,9 +749,8 @@ const int ctrlopt_entry_count = CTRLOPT_ENTRY_COUNT;
 
 static void draw_kc_sel(int menu_sel)
 {
-	int tl_x = 80+25+40, tl_y = 16+60, y;
+   int tl_x = 80+25+40, tl_y = 16+60;
 
-	y = tl_y;
 	menu_draw_begin();
 	menu_draw_selection(tl_x - 16, tl_y + menu_sel*10, 138);
 

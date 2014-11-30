@@ -148,39 +148,6 @@ void in_probe(void)
 	}
 }
 
-int in_update(void)
-{
-	int i, result = 0;
-
-	for (i = 0; i < in_dev_count; i++) {
-		in_dev_t *dev = &in_devices[i];
-		if (dev->probed && dev->binds != NULL) {
-			switch (dev->drv_id) {
-#ifdef IN_EVDEV
-			case IN_DRVID_EVDEV:
-				result |= in_evdev_update(dev->drv_data, dev->binds);
-				break;
-#endif
-			}
-		}
-	}
-
-	return result;
-}
-
-static void **in_collect_drvdata(int drv_id, int *count)
-{
-	static void *data[IN_MAX_DEVS];
-	int i;
-
-	for (*count = i = 0; i < in_dev_count; i++) {
-		if (in_devices[i].drv_id == drv_id && in_devices[i].probed)
-			data[(*count)++] = in_devices[i].drv_data;
-	}
-
-	return data;
-}
-
 static int menu_key_state = 0;
 
 void in_set_blocking(int is_blocking)
@@ -204,31 +171,6 @@ void in_set_blocking(int is_blocking)
 int in_update_keycode(int *dev_id_out, int *is_down_out, int timeout_ms)
 {
 	int result = 0, dev_id, is_down, result_menu;
-
-#ifdef IN_EVDEV
-	void **data;
-	int i, id = 0, count = 0;
-
-	data = in_collect_drvdata(IN_DRVID_EVDEV, &count);
-	if (count == 0) {
-		/* don't deadlock, fail */
-		printf("input: failed to find devices to read\n");
-		exit(1);
-	}
-
-	result = in_evdev_update_keycode(data, count, &id, &is_down, timeout_ms);
-
-	for (i = id; i < in_dev_count; i++) {
-		if (in_devices[i].drv_data == data[id]) {
-			dev_id = i;
-			break;
-		}
-	}
-#elif defined(PSP)
-
-#else
-#error no menu read handlers
-#endif
 
 	/* keep track of menu key state, to allow mixing
 	 * in_update_keycode() and in_update_menu() calls */
@@ -558,35 +500,4 @@ void in_init(void)
 		in_drivers[i].get_key_code = in_def_get_key_code;
 		in_drivers[i].get_key_name = in_def_get_key_name;
 	}
-
-#ifdef IN_EVDEV
-	in_evdev_init(&in_drivers[IN_DRVID_EVDEV]);
-#endif
 }
-
-#if 0
-int main(void)
-{
-	int ret;
-
-	in_init();
-	in_probe();
-
-	in_set_blocking(1);
-
-#if 1
-	while (1) {
-		int dev = 0, down;
-		ret = in_update_keycode(&dev, &down);
-		printf("#%i: %i %i (%s)\n", dev, down, ret, in_get_key_name(dev, ret));
-	}
-#else
-	while (1) {
-		ret = in_update_menu();
-		printf("%08x\n", ret);
-	}
-#endif
-
-	return 0;
-}
-#endif

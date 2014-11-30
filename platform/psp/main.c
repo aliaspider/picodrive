@@ -12,23 +12,7 @@
 #include "../common/config.h"
 #include "../common/lprintf.h"
 
-#ifdef GPROF
-#include <pspprof.h>
-#endif
-
-#ifdef GCOV
-#include <stdio.h>
-#include <stdlib.h>
-
-void dummy(void)
-{
-	engineState = atoi(romFileName);
-	setbuf(NULL, NULL);
-	getenv(NULL);
-}
-#endif
-
-int pico_main(void)
+int pico_main(const char *fileName)
 {
 	psp_init();
 
@@ -40,19 +24,20 @@ int pico_main(void)
 	menu_init();
    // moved to emu_Loop(), after CPU clock change..
 
-	engineState = PGS_Menu;
+   if(fileName && *fileName)
+   {
+      strcpy(romFileName, fileName);
+      engineState = PGS_ReloadRom;
+   }
+   else
+      engineState = PGS_Menu;
 
 	for (;;)
 	{
 		switch (engineState)
 		{
-			case PGS_Menu:
-#ifndef GPROF
+         case PGS_Menu:
 				menu_loop();
-#else
-				strcpy(romFileName, loadedRomFName);
-				engineState = PGS_ReloadRom;
-#endif
 				break;
 
 			case PGS_ReloadRom:
@@ -87,9 +72,6 @@ int pico_main(void)
 					break;
 				}
 				emu_Loop();
-#ifdef GPROF
-				goto endloop;
-#endif
 				break;
 
 			case PGS_Quit:
@@ -104,12 +86,7 @@ int pico_main(void)
 	endloop:
 
 	emu_Deinit();
-#ifdef GPROF
-	gprof_cleanup();
-#endif
-#ifndef GCOV
 	psp_finish();
-#endif
 
 	return 0;
 }
