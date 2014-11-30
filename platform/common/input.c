@@ -3,7 +3,6 @@
 #include <string.h>
 
 #include "input.h"
-#include "../linux/in_evdev.h"
 
 typedef struct
 {

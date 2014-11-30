@@ -125,18 +125,12 @@ int Insert_CD(char *cdimg_name, int type);
 void Stop_CD(void); // releases all resources taken when CD game was started.
 
 // Cart.c
-typedef enum
-{
-	PMT_UNCOMPRESSED = 0,
-	PMT_ZIP,
-	PMT_CSO
-} pm_type;
+
 typedef struct
 {
 	void *file;		/* file handle */
 	void *param;		/* additional file related field */
-	unsigned int size;	/* size */
-	pm_type type;
+   unsigned int size;	/* size */
 } pm_file;
 pm_file *pm_open(const char *path);
 size_t   pm_read(void *ptr, size_t bytes, pm_file *stream);

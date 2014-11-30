@@ -183,21 +183,13 @@ PICO_INTERNAL int Load_CD_Image(const char *cd_img_name, cd_img_type type)
 
 		for (j = 0; j < sizeof(exts)/sizeof(char *); j++)
 		{
-			int ext_len;
-			sprintf(tmp_ext, exts[j], i);
-			ext_len = strlen(tmp_ext);
+         sprintf(tmp_ext, exts[j], i);
 
 			memcpy(tmp_name, cd_img_name, iso_name_len + 1);
 			tmp_name[iso_name_len - 4] = 0;
 			strcat(tmp_name, tmp_ext);
 
 			index = num_track - 1;
-//			ret = audio_track_mp3(tmp_name, index);
-//			if (ret != 0 && i > 1 && iso_name_len > ext_len) {
-//				tmp_name[iso_name_len - ext_len] = 0;
-//				strcat(tmp_name, tmp_ext);
-//				ret = audio_track_mp3(tmp_name, index);
-//			}
          ret = 0;
 
 			if (ret == 0)

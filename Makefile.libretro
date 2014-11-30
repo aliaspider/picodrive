@@ -143,12 +143,6 @@ readme.txt: tools/textfilter ../base_readme.txt
 tools/textfilter: tools/textfilter.c
 	make -C tools/ textfilter
 
-data/bg32.o: data/bg32.bin
-	bin2o -i $< $@ bgdatac32
-
-data/bg40.o: data/bg40.bin
-	bin2o -i $< $@ bgdatac40
-
 vpath %.S = platform/psp/SDK
 $(KU_OBJS): KUBridge.S
 	$(CC) $(CFLAGS) -DF_$* $< -c -o $@

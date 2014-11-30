@@ -12,7 +12,6 @@ extern "C" {
 #define EOPT_USE_SRAM     (1<<0)
 #define EOPT_SHOW_FPS     (1<<1)
 #define EOPT_EN_SOUND     (1<<2)
-#define EOPT_GZIP_SAVES   (1<<3)
 #define EOPT_NO_AUTOSVCFG (1<<5)
 
 typedef struct _currentConfig_t {
@@ -62,7 +61,7 @@ int   emu_WriteConfig(int game);
 void  emu_writelrom(void);
 char *emu_GetSaveFName(int load, int is_sram, int slot);
 int   emu_checkSaveFile(int slot);
-void  emu_setSaveStateCbs(int gz);
+void  emu_setSaveStateCbs(void);
 void  emu_updateMovie(void);
 int   emu_cdCheck(int *pregion, char *fname_in);
 int   emu_findBios(int region, char **bios_file);

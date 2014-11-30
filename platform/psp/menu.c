@@ -29,8 +29,6 @@
 
 #include <pico/pico_int.h>
 #include <pico/patch.h>
-#include <zlib/zlib.h>
-
 
 #define pspKeyUnkn "???"
 const char * const keyNames[] = {
@@ -536,13 +534,8 @@ static void draw_savestate_bg(int slot)
 	oldstate = get_oldstate_for_preview();
 	if (oldstate == NULL) return;
 
-	if (strcmp(fname + strlen(fname) - 3, ".gz") == 0) {
-		file = gzopen(fname, "rb");
-		emu_setSaveStateCbs(1);
-	} else {
-		file = fopen(fname, "rb");
-		emu_setSaveStateCbs(0);
-	}
+   file = fopen(fname, "rb");
+   emu_setSaveStateCbs();
 
 	if (file) {
 		if (PicoAHW & PAHW_MCD) {
@@ -1025,37 +1018,6 @@ static void menu_opt3_cust_draw(const menu_entry *entry, int x, int y, void *par
 	}
 }
 
-static void menu_opt3_preview(int is_32col)
-{
-	void *oldstate = NULL;
-
-	if (!rom_loaded || ((Pico.video.reg[12]&1)^1) != is_32col)
-	{
-		extern char bgdatac32_start[], bgdatac40_start[];
-		extern int bgdatac32_size, bgdatac40_size;
-		void *bgdata = is_32col ? bgdatac32_start : bgdatac40_start;
-		unsigned long insize = is_32col ? bgdatac32_size : bgdatac40_size, outsize = 65856;
-		int ret;
-		ret = uncompress((Bytef *)bg_buffer, &outsize, bgdata, insize);
-		if (ret == 0)
-		{
-			if (rom_loaded) oldstate = get_oldstate_for_preview();
-			memcpy(Pico.vram,  bg_buffer, sizeof(Pico.vram));
-			memcpy(Pico.cram,  (char *)bg_buffer + 0x10000, 0x40*2);
-			memcpy(Pico.vsram, (char *)bg_buffer + 0x10080, 0x40*2);
-			memcpy(&Pico.video,(char *)bg_buffer + 0x10100, 0x40);
-		}
-		else
-			lprintf("uncompress returned %i\n", ret);
-	}
-
-	memset32_uncached(psp_screen, 0, 512*272*2/4);
-	emu_forcedFrame(0);
-	menu_prepare_bg(1, 0);
-
-	if (oldstate) restore_oldstate(oldstate);
-}
-
 static void draw_dispmenu_options(int menu_sel)
 {
 	int tl_x = 80, tl_y = 16+50;
@@ -1085,8 +1047,8 @@ static void dispmenu_loop_options(void)
 		if (inp & PBTN_UP  ) { menu_sel--; if (menu_sel < 0) menu_sel = menu_sel_max; }
 		if (inp & PBTN_DOWN) { menu_sel++; if (menu_sel > menu_sel_max) menu_sel = 0; }
 		selected_id = me_index2id(opt3_entries, OPT3_ENTRY_COUNT, menu_sel);
-		if (selected_id == MA_OPT3_HSCALE40 &&  is_32col) { is_32col = 0; menu_opt3_preview(is_32col); }
-		if (selected_id == MA_OPT3_HSCALE32 && !is_32col) { is_32col = 1; menu_opt3_preview(is_32col); }
+      if (selected_id == MA_OPT3_HSCALE40 &&  is_32col) { is_32col = 0; }
+      if (selected_id == MA_OPT3_HSCALE32 && !is_32col) { is_32col = 1; }
 
 		if (inp & (PBTN_LEFT|PBTN_RIGHT)) // multi choise
 		{
@@ -1099,7 +1061,7 @@ static void dispmenu_loop_options(void)
 				case MA_OPT3_HSCALE32:	setting = &currentConfig.hscale32; is_32col = 1; break;
 				case MA_OPT3_FILTERING:
 				case MA_OPT3_GAMMAA:
-				case MA_OPT3_BLACKLVL:	menu_opt3_preview(is_32col); break;
+            case MA_OPT3_BLACKLVL: break;
 				case MA_OPT3_VSYNC:
 					tmp = ((currentConfig.EmuOpt>>13)&1) | ((currentConfig.EmuOpt>>15)&2);
 					tmp = (inp & PBTN_LEFT) ? (tmp>>1) : ((tmp<<1)|1);
@@ -1112,8 +1074,7 @@ static void dispmenu_loop_options(void)
 			if (setting != NULL) {
 				while ((inp = psp_pad_read(0)) & (PBTN_LEFT|PBTN_RIGHT)) {
 					*setting += (inp & PBTN_LEFT) ? -0.01 : 0.01;
-					if (*setting <= 0) *setting = 0.01;
-					menu_opt3_preview(is_32col);
+               if (*setting <= 0) *setting = 0.01;
 					draw_dispmenu_options(menu_sel); // will wait vsync
 				}
 			}
@@ -1124,23 +1085,19 @@ static void dispmenu_loop_options(void)
 				case MA_OPT3_DONE:
 					return;
 				case MA_OPT3_PRES_NOSCALE:
-					currentConfig.scale = currentConfig.hscale40 = currentConfig.hscale32 = 1.0;
-					menu_opt3_preview(is_32col);
+               currentConfig.scale = currentConfig.hscale40 = currentConfig.hscale32 = 1.0;
 					break;
 				case MA_OPT3_PRES_SCALE43:
 					currentConfig.scale = 1.20;
 					currentConfig.hscale40 = 1.00;
-					currentConfig.hscale32 = 1.25;
-					menu_opt3_preview(is_32col);
+               currentConfig.hscale32 = 1.25;
 					break;
 				case MA_OPT3_PRES_FULLSCR:
 					currentConfig.scale = 1.20;
 					currentConfig.hscale40 = 1.25;
-					currentConfig.hscale32 = 1.56;
-					menu_opt3_preview(is_32col);
+               currentConfig.hscale32 = 1.56;
 					break;
-				case MA_OPT3_FILTERING:
-					menu_opt3_preview(is_32col);
+            case MA_OPT3_FILTERING:
 					break;
 				default: break;
 			}

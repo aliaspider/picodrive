@@ -52,12 +52,7 @@ OBJS += pico/sound/sound.o
 
 OBJS += pico/sound/mix.o
 OBJS += pico/sound/sn76496.o pico/sound/ym2612.o
-# zlib (hacked)
-OBJS += zlib/gzio.o zlib/inffast.o zlib/inflate.o zlib/inftrees.o zlib/trees.o \
-	zlib/deflate.o zlib/crc32.o zlib/adler32.o zlib/zutil.o zlib/compress.o \
-	zlib/uncompr.o
-# unzip
-OBJS += unzip/unzip.o unzip/unzip_stream.o
+
 # CPU cores
 ifeq "$(use_musashi)" "1"
 CFLAGS += -DEMU_M68K
@@ -74,8 +69,6 @@ else
 CFLAGS += -D_USE_CZ80
 OBJS += cpu/cz80/cz80.o
 endif
-# bg images
-OBJS += data/bg32.o data/bg40.o
 
 vpath %.c = ../..
 vpath %.s = ../..
@@ -83,7 +76,7 @@ DIRS = platform platform/psp platform/common pico pico/cd pico/pico pico/sound p
 	zlib unzip cpu cpu/musashi cpu/fame cpu/mz80 cpu/cz80
 
 
-LIBS += -lpng -lm -lpspgu -lpsppower -lpspaudio -lpsprtc -lpspaudiocodec -lpspkubridge
+LIBS += -lpng -lz -lm -lpspgu -lpsppower -lpspaudio -lpsprtc -lpspaudiocodec -lpspkubridge
 #LIBS += -lpspprof
 LDFLAGS += -Wl,-Map=PicoDrive.map
 
@@ -146,12 +139,6 @@ readme.txt: ../../tools/textfilter ../base_readme.txt
 
 ../../tools/textfilter: ../../tools/textfilter.c
 	make -C ../../tools/ textfilter
-
-data/bg32.o: data/bg32.bin
-	bin2o -i $< $@ bgdatac32
-
-data/bg40.o: data/bg40.bin
-	bin2o -i $< $@ bgdatac40
 
 #
 ifndef UPDIR

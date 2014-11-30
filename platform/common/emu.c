@@ -20,8 +20,6 @@
 #include <pico/pico_int.h>
 #include <pico/patch.h>
 #include <pico/cd/cue.h>
-#include <zlib/zlib.h>
-
 
 char *PicoConfigFile = "config.cfg";
 currentConfig_t currentConfig, defaultConfig;
@@ -806,17 +804,6 @@ void emu_updateMovie(void)
 }
 
 
-static size_t gzRead2(void *p, size_t _size, size_t _n, void *file)
-{
-	return gzread(file, p, _n);
-}
-
-
-static size_t gzWrite2(void *p, size_t _size, size_t _n, void *file)
-{
-	return gzwrite(file, p, _n);
-}
-
 static int try_ropen_file(const char *fname)
 {
 	FILE *f;
@@ -849,7 +836,7 @@ char *emu_GetSaveFName(int load, int is_sram, int slot)
 	{
 		ext[0] = 0;
 		if(slot > 0 && slot < 10) sprintf(ext, ".%i", slot);
-		strcat(ext, (currentConfig.EmuOpt & EOPT_GZIP_SAVES) ? ".mds.gz" : ".mds");
+      strcat(ext, ".mds");
 
 		romfname_ext(saveFname, "mds" PATH_SEP, ext);
 		if (load) {
@@ -857,17 +844,6 @@ char *emu_GetSaveFName(int load, int is_sram, int slot)
 			romfname_ext(saveFname, NULL, ext);
 			if (try_ropen_file(saveFname)) return saveFname;
 			// no gzipped states, search for non-gzipped
-			if (currentConfig.EmuOpt & EOPT_GZIP_SAVES)
-			{
-				ext[0] = 0;
-				if(slot > 0 && slot < 10) sprintf(ext, ".%i", slot);
-				strcat(ext, ".mds");
-
-				romfname_ext(saveFname, "mds"PATH_SEP, ext);
-				if (try_ropen_file(saveFname)) return saveFname;
-				romfname_ext(saveFname, NULL, ext);
-				if (try_ropen_file(saveFname)) return saveFname;
-			}
 			return NULL;
 		}
 	}
@@ -880,21 +856,13 @@ int emu_checkSaveFile(int slot)
 	return emu_GetSaveFName(1, 0, slot) ? 1 : 0;
 }
 
-void emu_setSaveStateCbs(int gz)
+void emu_setSaveStateCbs(void)
 {
-	if (gz) {
-		areaRead  = gzRead2;
-		areaWrite = gzWrite2;
-		areaEof   = (areaeof *) gzeof;
-		areaSeek  = (areaseek *) gzseek;
-		areaClose = (areaclose *) gzclose;
-	} else {
-		areaRead  = (arearw *) fread;
-		areaWrite = (arearw *) fwrite;
-		areaEof   = (areaeof *) feof;
-		areaSeek  = (areaseek *) fseek;
-		areaClose = (areaclose *) fclose;
-	}
+   areaRead  = (arearw *) fread;
+   areaWrite = (arearw *) fwrite;
+   areaEof   = (areaeof *) feof;
+   areaSeek  = (areaseek *) fseek;
+   areaClose = (areaclose *) fclose;
 }
 
 int emu_SaveLoadGame(int load, int sram)
@@ -970,19 +938,10 @@ int emu_SaveLoadGame(int load, int sram)
 	else
 	{
 		void *PmovFile = NULL;
-		if (strcmp(saveFname + strlen(saveFname) - 3, ".gz") == 0)
-		{
-			if( (PmovFile = gzopen(saveFname, load ? "rb" : "wb")) ) {
-				emu_setSaveStateCbs(1);
-				if (!load) gzsetparams(PmovFile, 9, Z_DEFAULT_STRATEGY);
-			}
-		}
-		else
-		{
-			if( (PmovFile = fopen(saveFname, load ? "rb" : "wb")) ) {
-				emu_setSaveStateCbs(0);
-			}
-		}
+
+      if( (PmovFile = fopen(saveFname, load ? "rb" : "wb")) )
+         emu_setSaveStateCbs();
+
 		if(PmovFile) {
 			ret = PmovState(load ? 6 : 5, PmovFile);
 			areaClose(PmovFile);
