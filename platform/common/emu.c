@@ -128,21 +128,6 @@ int emu_findBios(int region, char **bios_file)
 	}
 }
 
-/* check if the name begins with BIOS name */
-/*
-static int emu_isBios(const char *name)
-{
-	int i;
-	for (i = 0; i < sizeof(biosfiles_us)/sizeof(biosfiles_us[0]); i++)
-		if (strstr(name, biosfiles_us[i]) != NULL) return 1;
-	for (i = 0; i < sizeof(biosfiles_eu)/sizeof(biosfiles_eu[0]); i++)
-		if (strstr(name, biosfiles_eu[i]) != NULL) return 1;
-	for (i = 0; i < sizeof(biosfiles_jp)/sizeof(biosfiles_jp[0]); i++)
-		if (strstr(name, biosfiles_jp[i]) != NULL) return 1;
-	return 0;
-}
-*/
-
 static unsigned char id_header[0x100];
 
 /* checks if fname points to valid MegaCD image

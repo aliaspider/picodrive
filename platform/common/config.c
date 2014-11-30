@@ -426,21 +426,6 @@ write:
 		keys_write(fn, strbind, t, binds, no_defaults);
 	}
 
-#if 0
-	/* old stuff */
-	keys_write(fn, "bind", currentConfig.KeyBinds, defaultConfig.KeyBinds, keyNames, PLAT_MAX_KEYS, no_defaults);
-#if PLAT_HAVE_JOY
-	keys_write(fn, "bind_joy0", currentConfig.JoyBinds[0], defaultConfig.JoyBinds[0], joyKeyNames, 32, 1);
-	keys_write(fn, "bind_joy1", currentConfig.JoyBinds[1], defaultConfig.JoyBinds[1], joyKeyNames, 32, 1);
-	keys_write(fn, "bind_joy2", currentConfig.JoyBinds[2], defaultConfig.JoyBinds[2], joyKeyNames, 32, 1);
-	keys_write(fn, "bind_joy3", currentConfig.JoyBinds[3], defaultConfig.JoyBinds[3], joyKeyNames, 32, 1);
-#endif
-#endif
-
-#ifndef PSP
-	if (section == NULL)
-		fprintf(fn, "Sound Volume = %i" NL, currentConfig.volume);
-#endif
 
 	fprintf(fn, NL);
 
@@ -570,22 +555,7 @@ static int custom_read(menu_entry *me, const char *var, const char *val)
 			return 1;
 
 		case MA_OPT_SCALING:
-#ifdef __GP2X__
-			if (strcasecmp(var, "Scaling") != 0) return 0;
-			if        (strcasecmp(val, "OFF") == 0) {
-				currentConfig.scaling = 0;
-			} else if (strcasecmp(val, "hw horizontal") == 0) {
-				currentConfig.scaling = 1;
-			} else if (strcasecmp(val, "hw horiz. + vert.") == 0) {
-				currentConfig.scaling = 2;
-			} else if (strcasecmp(val, "sw horizontal") == 0) {
-				currentConfig.scaling = 3;
-			} else
-				return 0;
-			return 1;
-#else
-			return 0;
-#endif
+         return 0;
 
 		case MA_OPT_FRAMESKIP:
 			if (strcasecmp(var, "Frameskip") != 0) return 0;
@@ -661,11 +631,7 @@ static int custom_read(menu_entry *me, const char *var, const char *val)
 			return 1;
 
 		case MA_OPT_CPU_CLOCKS:
-#ifdef __GP2X__
-			if (strcasecmp(var, "GP2X CPU clocks") != 0) return 0;
-#elif defined(PSP)
-			if (strcasecmp(var, "PSP CPU clock") != 0) return 0;
-#endif
+         if (strcasecmp(var, "PSP CPU clock") != 0) return 0;
 			currentConfig.CPUclock = atoi(val);
 			return 1;
 
@@ -771,34 +737,6 @@ static void keys_parse(const char *key, const char *val, int dev_id)
 	}
 
 	in_config_bind_key(dev_id, key, binds);
-/*
-	for (t = 0; t < 32; t++)
-	{
-		if (names[t] && strcmp(names[t], var) == 0) break;
-	}
-	if (t == 32)
-	{
-		int len = strlen(var);
-		if (len == 1) t = var[0];
-		else if (len >= 4 && var[0] == '\\' && var[1] == 'x') {
-			char *p;
-			t = (int)strtoul(var + 2, &p, 16);
-			if (*p != 0) t = max_keys; // parse failed
-		}
-		else
-			t = max_keys; // invalid
-	}
-	if (t < 0 || t >= max_keys) {
-		lprintf("unhandled bind \"%s\"\n", var);
-		return;
-	}
-
-	// unbind old, but only when key is first encountered
-	if (t < 32 && binds == currentConfig.KeyBinds && !(keys_encountered & (1<<t))) {
-		binds[t] = 0;
-		keys_encountered |= 1<<t;
-	}
-*/
 }
 
 
@@ -870,13 +808,6 @@ static void parse(const char *var, const char *val)
 		keys_parse(p, val, num);
 		return;
 	}
-
-#if 0//PLAT_HAVE_JOY
-	try_joy_parse(0)
-	try_joy_parse(1)
-	try_joy_parse(2)
-	try_joy_parse(3)
-#endif
 
 	for (t = 0; t < sizeof(cfg_opts) / sizeof(cfg_opts[0]) && ret == 0; t++)
 	{
