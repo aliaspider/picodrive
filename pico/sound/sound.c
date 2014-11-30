@@ -277,7 +277,6 @@ PICO_INTERNAL void PsndClear(void)
 
 static int PsndRender(int offset, int length)
 {
-  int  buf32_updated = 0;
   int *buf32 = PsndBuffer+offset;
   int stereo = (PicoOpt & 8) >> 3;
   // emulating CD && PCM option enabled && PCM chip on && have enabled channels
@@ -307,7 +306,7 @@ static int PsndRender(int offset, int length)
 
   // Add in the stereo FM buffer
   if (PicoOpt & POPT_EN_FM) {
-    buf32_updated = YM2612UpdateOne(buf32, length, stereo, 1);
+    YM2612UpdateOne(buf32, length, stereo, 1);
   } else
     memset32(buf32, 0, length<<stereo);
 

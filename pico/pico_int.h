@@ -54,9 +54,6 @@ extern struct Cyclone PicoCpuCM68k, PicoCpuCS68k;
 
 #define SekInterrupt(i) PicoCpuCM68k.irq=i
 
-#ifdef EMU_M68K
-#define EMU_CORE_DEBUG
-#endif
 #endif
 
 #ifdef EMU_F68K
@@ -86,9 +83,6 @@ extern M68K_CONTEXT PicoCpuFM68k, PicoCpuFS68k;
 
 #define SekInterrupt(irq) PicoCpuFM68k.interrupts[0]=irq
 
-#ifdef EMU_M68K
-#define EMU_CORE_DEBUG
-#endif
 #endif
 
 #ifdef EMU_M68K
@@ -154,20 +148,6 @@ extern int SekCycleAimS68k;
 	SekCycleAimS68k=0; \
 }
 #define SekCyclesDoneS68k()  (SekCycleAimS68k-SekCyclesLeftS68k)
-
-#ifdef EMU_CORE_DEBUG
-extern int dbg_irq_level;
-#undef SekSetCyclesLeftNoMCD
-#undef SekSetCyclesLeft
-#undef SekCyclesBurn
-#undef SekEndRun
-#undef SekInterrupt
-#define SekSetCyclesLeftNoMCD(c)
-#define SekSetCyclesLeft(c)
-#define SekCyclesBurn(c) c
-#define SekEndRun(c)
-#define SekInterrupt(irq) dbg_irq_level=irq
-#endif
 
 // ----------------------- Z80 CPU -----------------------
 

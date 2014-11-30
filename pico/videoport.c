@@ -422,7 +422,6 @@ PICO_INTERNAL_ASM void PicoVideoWrite(unsigned int a,unsigned short d)
         return;
 
 update_irq:
-#ifndef EMU_CORE_DEBUG
         // update IRQ level
         if (!SekShouldInterrupt) // hack
         {
@@ -435,7 +434,6 @@ update_irq:
 
           if (irq) SekEndRun(24); // make it delayed
         }
-#endif
       }
       else
       {

@@ -13,8 +13,6 @@
 #include "cd_sys.h"
 #include "cd_file.h"
 
-#define DEBUG_CD
-
 #define TRAY_OPEN	0x0500		// TRAY OPEN CDD status
 #define NOCD		0x0000		// CD removed CDD status
 #define STOPPED		0x0900		// STOPPED CDD status (happen after stop or close tray command)
@@ -572,14 +570,6 @@ PICO_INTERNAL int Resume_CDD_c7(void)
 	CHECK_CD_PRESENT
 
 	Pico_mcd->scd.Cur_Track = LBA_to_Track(Pico_mcd->scd.Cur_LBA);
-
-#ifdef DEBUG_CD
-	{
-		_msf MSF;
-		LBA_to_MSF(Pico_mcd->scd.Cur_LBA, &MSF);
-		cdprintf("Resume read : Cur LBA = %d, M=%d, S=%d, F=%d", Pico_mcd->scd.Cur_LBA, MSF.M, MSF.S, MSF.F);
-	}
-#endif
 
 	Pico_mcd->scd.Status_CDD = PLAYING;
 	Pico_mcd->cdd.Status = 0x0102;

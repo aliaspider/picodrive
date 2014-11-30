@@ -15,15 +15,6 @@ typedef unsigned int   u32;
 #define UTYPES_DEFINED
 #endif
 
-#define CLEAR_DETECT(pc_start,pc_end,text) \
-  if (d == 0 && SekPc >= pc_start && SekPc < pc_end) \
-  { \
-    if (!clearing_ram) \
-      elprintf(EL_SVP, text); \
-    clearing_ram = 1; \
-    return; \
-  }
-
 unsigned int PicoSVPRead16(unsigned int a, int realsize)
 {
   unsigned int d = 0;
@@ -116,13 +107,6 @@ void PicoSVPWrite16(unsigned int a, unsigned int d, int realsize)
 
   if (a == 0x30fe08 && d != 0)
     svp->ssp1601.emu_status &= ~SSP_WAIT_30FE08;
-
-  // debug: detect RAM clears..
-  CLEAR_DETECT(0x0221dc, 0x0221f0, "SVP RAM CLEAR (full) @ 0221C2");
-  CLEAR_DETECT(0x02204c, 0x022068, "SVP RAM CLEAR 300000-31ffbf (1) @ 022032");
-  CLEAR_DETECT(0x021900, 0x021ff0, "SVP RAM CLEAR 300000-305fff");
-  CLEAR_DETECT(0x0220b0, 0x0220cc, "SVP RAM CLEAR 300000-31ffbf (2) @ 022096");
-  clearing_ram = 0;
 
   elprintf(EL_SVP, "SVP w%i: [%06x] %04x @%06x", realsize, a&0xffffff, d, SekPc);
 }

@@ -166,9 +166,7 @@ PICO_INTERNAL int SekReset(void)
 void SekStepM68k(void)
 {
   SekCycleAim=SekCycleCnt+1;
-#if defined(EMU_CORE_DEBUG)
-  SekCycleCnt+=CM_compareRun(1, 0);
-#elif defined(EMU_C68K)
+#if defined(EMU_C68K)
   PicoCpuCM68k.cycles=1;
   CycloneRun(&PicoCpuCM68k);
   SekCycleCnt+=1-PicoCpuCM68k.cycles;

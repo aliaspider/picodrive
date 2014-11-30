@@ -29,12 +29,6 @@ void PicoWriteRomHW_SSF2(u32 a,u32 d);
 #endif
 
 
-#ifdef EMU_CORE_DEBUG
-u32 lastread_a, lastread_d[16]={0,}, lastwrite_cyc_d[16]={0,}, lastwrite_mus_d[16]={0,};
-int lrp_cyc=0, lrp_mus=0, lwp_cyc=0, lwp_mus=0;
-extern unsigned int ppop;
-#endif
-
 #ifdef IO_STATS
 void log_io(unsigned int addr, int bits, int rw);
 #elif defined(_MSC_VER)
@@ -332,14 +326,12 @@ PICO_INTERNAL_ASM u32 PicoRead8(u32 a)
 
   a&=0xffffff;
 
-#ifndef EMU_CORE_DEBUG
   // sram
   if (a >= SRam.start && a <= SRam.end && (Pico.m.sram_reg&5)) {
     d = SRAMRead(a);
     elprintf(EL_SRAMIO, "sram r8 [%06x] %02x @ %06x", a, d, SekPc);
     goto end;
   }
-#endif
 
   if (a<Pico.romsize) { d = *(u8 *)(Pico.rom+(a^1)); goto end; } // Rom
   log_io(a, 8, 0);
@@ -352,12 +344,7 @@ PICO_INTERNAL_ASM u32 PicoRead8(u32 a)
 
 end:
   elprintf(EL_IO, "r8 : %06x,   %02x @%06x", a&0xffffff, (u8)d, SekPc);
-#ifdef EMU_CORE_DEBUG
-  if (a>=Pico.romsize) {
-    lastread_a = a;
-    lastread_d[lrp_cyc++&15] = (u8)d;
-  }
-#endif
+
   return d;
 }
 
@@ -369,14 +356,12 @@ PICO_INTERNAL_ASM u32 PicoRead16(u32 a)
 
   a&=0xfffffe;
 
-#ifndef EMU_CORE_DEBUG
   // sram
   if (a >= SRam.start && a <= SRam.end && (Pico.m.sram_reg&5)) {
     d = SRAMRead16(a);
     elprintf(EL_SRAMIO, "sram r16 [%06x] %04x @ %06x", a, d, SekPc);
     goto end;
   }
-#endif
 
   if (a<Pico.romsize) { d = *(u16 *)(Pico.rom+a); goto end; } // Rom
   log_io(a, 16, 0);
@@ -387,12 +372,7 @@ PICO_INTERNAL_ASM u32 PicoRead16(u32 a)
 
 end:
   elprintf(EL_IO, "r16: %06x, %04x  @%06x", a&0xffffff, d, SekPc);
-#ifdef EMU_CORE_DEBUG
-  if (a>=Pico.romsize) {
-    lastread_a = a;
-    lastread_d[lrp_cyc++&15] = d;
-  }
-#endif
+
   return d;
 }
 
@@ -420,12 +400,7 @@ PICO_INTERNAL_ASM u32 PicoRead32(u32 a)
 
 end:
   elprintf(EL_IO, "r32: %06x, %08x @%06x", a&0xffffff, d, SekPc);
-#ifdef EMU_CORE_DEBUG
-  if (a>=Pico.romsize) {
-    lastread_a = a;
-    lastread_d[lrp_cyc++&15] = d;
-  }
-#endif
+
   return d;
 }
 #endif
@@ -437,9 +412,6 @@ end:
 PICO_INTERNAL_ASM void PicoWrite8(u32 a,u8 d)
 {
   elprintf(EL_IO, "w8 : %06x,   %02x @%06x", a&0xffffff, d, SekPc);
-#ifdef EMU_CORE_DEBUG
-  lastwrite_cyc_d[lwp_cyc++&15] = d;
-#endif
 
   if ((a&0xe00000)==0xe00000) { *(u8 *)(Pico.ram+((a^1)&0xffff))=d; return; } // Ram
   log_io(a, 8, 1);
@@ -452,9 +424,6 @@ PICO_INTERNAL_ASM void PicoWrite8(u32 a,u8 d)
 void PicoWrite16(u32 a,u16 d)
 {
   elprintf(EL_IO, "w16: %06x, %04x", a&0xffffff, d);
-#ifdef EMU_CORE_DEBUG
-  lastwrite_cyc_d[lwp_cyc++&15] = d;
-#endif
 
   if ((a&0xe00000)==0xe00000) { *(u16 *)(Pico.ram+(a&0xfffe))=d; return; } // Ram
   log_io(a, 16, 1);
@@ -467,9 +436,6 @@ void PicoWrite16(u32 a,u16 d)
 static void PicoWrite32(u32 a,u32 d)
 {
   elprintf(EL_IO, "w32: %06x, %08x @%06x", a&0xffffff, d, SekPc);
-#ifdef EMU_CORE_DEBUG
-  lastwrite_cyc_d[lwp_cyc++&15] = d;
-#endif
 
   if ((a&0xe00000)==0xe00000)
   {
@@ -574,27 +540,18 @@ static unsigned int  m68k_read_8 (unsigned int a, int do_fake)
 {
   a&=0xffffff;
   if(a<Pico.romsize && m68ki_cpu_p==&PicoCpuMM68k)    return *(u8 *)(Pico.rom+(a^1)); // Rom
-#ifdef EMU_CORE_DEBUG
-  if(do_fake&&((ppop&0x3f)==0x3a||(ppop&0x3f)==0x3b)) return lastread_d[lrp_mus++&15];
-#endif
   return pm68k_read_memory_pcr_8(a);
 }
 static unsigned int  m68k_read_16(unsigned int a, int do_fake)
 {
   a&=0xffffff;
   if(a<Pico.romsize && m68ki_cpu_p==&PicoCpuMM68k)    return *(u16 *)(Pico.rom+(a&~1)); // Rom
-#ifdef EMU_CORE_DEBUG
-  if(do_fake&&((ppop&0x3f)==0x3a||(ppop&0x3f)==0x3b)) return lastread_d[lrp_mus++&15];
-#endif
   return pm68k_read_memory_pcr_16(a);
 }
 static unsigned int  m68k_read_32(unsigned int a, int do_fake)
 {
   a&=0xffffff;
   if(a<Pico.romsize && m68ki_cpu_p==&PicoCpuMM68k) { u16 *pm=(u16 *)(Pico.rom+(a&~1)); return (pm[0]<<16)|pm[1]; }
-#ifdef EMU_CORE_DEBUG
-  if(do_fake&&((ppop&0x3f)==0x3a||(ppop&0x3f)==0x3b)) return lastread_d[lrp_mus++&15];
-#endif
   return pm68k_read_memory_pcr_32(a);
 }
 
@@ -625,44 +582,6 @@ static unsigned int m68k_read_memory_pcr_32(unsigned int a)
   return 0;
 }
 
-#ifdef EMU_CORE_DEBUG
-// ROM only
-unsigned int m68k_read_memory_8(unsigned int a)
-{
-  u8 d;
-  if (a<Pico.romsize && m68ki_cpu_p==&PicoCpuMM68k)
-       d = *(u8 *) (Pico.rom+(a^1));
-  else d = (u8) lastread_d[lrp_mus++&15];
-  elprintf(EL_IO, "r8_mu : %06x,   %02x @%06x", a&0xffffff, d, SekPc);
-  return d;
-}
-unsigned int m68k_read_memory_16(unsigned int a)
-{
-  u16 d;
-  if (a<Pico.romsize && m68ki_cpu_p==&PicoCpuMM68k)
-       d = *(u16 *)(Pico.rom+(a&~1));
-  else d = (u16) lastread_d[lrp_mus++&15];
-  elprintf(EL_IO, "r16_mu: %06x, %04x @%06x", a&0xffffff, d, SekPc);
-  return d;
-}
-unsigned int m68k_read_memory_32(unsigned int a)
-{
-  u32 d;
-  if (a<Pico.romsize && m68ki_cpu_p==&PicoCpuMM68k)
-       { u16 *pm=(u16 *)(Pico.rom+(a&~1));d=(pm[0]<<16)|pm[1]; }
-  else if (a <= 0x78) d = m68k_read_32(a, 0);
-  else d = lastread_d[lrp_mus++&15];
-  elprintf(EL_IO, "r32_mu: %06x, %08x @%06x", a&0xffffff, d, SekPc);
-  return d;
-}
-
-// ignore writes, Cyclone already done that
-void m68k_write_memory_8(unsigned int address, unsigned int value)  { lastwrite_mus_d[lwp_mus++&15] = value; }
-void m68k_write_memory_16(unsigned int address, unsigned int value) { lastwrite_mus_d[lwp_mus++&15] = value; }
-void m68k_write_memory_32(unsigned int address, unsigned int value) { lastwrite_mus_d[lwp_mus++&15] = value; }
-
-#else // if !EMU_CORE_DEBUG
-
 /* it appears that Musashi doesn't always mask the unused bits */
 unsigned int m68k_read_memory_8 (unsigned int address) { return pm68k_read_memory_8 (address) & 0xff; }
 unsigned int m68k_read_memory_16(unsigned int address) { return pm68k_read_memory_16(address) & 0xffff; }
@@ -670,7 +589,7 @@ unsigned int m68k_read_memory_32(unsigned int address) { return pm68k_read_memor
 void m68k_write_memory_8 (unsigned int address, unsigned int value) { pm68k_write_memory_8 (address, (u8)value); }
 void m68k_write_memory_16(unsigned int address, unsigned int value) { pm68k_write_memory_16(address,(u16)value); }
 void m68k_write_memory_32(unsigned int address, unsigned int value) { pm68k_write_memory_32(address, value); }
-#endif // !EMU_CORE_DEBUG
+
 
 static void m68k_mem_setup(void)
 {

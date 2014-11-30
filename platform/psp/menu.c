@@ -1528,7 +1528,6 @@ static void menu_loop_root(void)
 		inp = wait_for_input(PBTN_UP|PBTN_DOWN|PBTN_X|PBTN_CIRCLE|PBTN_SELECT|PBTN_L|PBTN_R, 0);
 		if(inp & PBTN_UP  )  { menu_sel--; if (menu_sel < 0) menu_sel = menu_sel_max; }
 		if(inp & PBTN_DOWN)  { menu_sel++; if (menu_sel > menu_sel_max) menu_sel = 0; }
-		if((inp & (PBTN_L|PBTN_R)) == (PBTN_L|PBTN_R)) debug_menu_loop();
 		if( inp & (PBTN_SELECT|PBTN_X)) {
 			if (rom_loaded) {
 				while (psp_pad_read(1) & (PBTN_SELECT|PBTN_X)) psp_msleep(50); // wait until released

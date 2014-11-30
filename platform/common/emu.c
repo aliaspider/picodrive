@@ -504,9 +504,7 @@ static void romfname_ext(char *dst, const char *prefix, const char *ext)
 		strcpy(dst + len, prefix);
 		prefix_len = len + strlen(prefix);
 	}
-#ifdef UIQ3
-	else p = loadedRomFName; // backward compatibility
-#endif
+
 	strncpy(dst + prefix_len, p, 511-prefix_len);
 	dst[511-8] = 0;
 	if (dst[strlen(dst)-4] == '.') dst[strlen(dst)-4] = 0;
@@ -654,7 +652,6 @@ void emu_writelrom(void)
 
 }
 
-#ifndef UIQ3
 void emu_textOut8(int x, int y, const char *text)
 {
 	int i,l,len=strlen(text);
@@ -701,7 +698,6 @@ void emu_textOut16(int x, int y, const char *text)
 		screen += 8;
 	}
 }
-#endif
 
 #ifdef PSP
 #define MAX_COMBO_KEY 23

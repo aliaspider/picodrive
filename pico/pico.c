@@ -244,10 +244,7 @@ static __inline void SekRunM68k(int cyc)
   int cyc_do;
   SekCycleAim+=cyc;
   if ((cyc_do=SekCycleAim-SekCycleCnt) <= 0) return;
-#if defined(EMU_CORE_DEBUG)
-  // this means we do run-compare
-  SekCycleCnt+=CM_compareRun(cyc_do, 0);
-#elif defined(EMU_C68K)
+#if defined(EMU_C68K)
   PicoCpuCM68k.cycles=cyc_do;
   CycloneRun(&PicoCpuCM68k);
   SekCycleCnt+=cyc_do-PicoCpuCM68k.cycles;
