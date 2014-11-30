@@ -16,7 +16,6 @@
 #include "psp.h"
 #include "menu.h"
 #include "emu.h"
-#include "mp3.h"
 #include "asm_utils.h"
 #include "../common/emu.h"
 #include "../common/config.h"
@@ -909,7 +908,6 @@ static void simpleWait(unsigned int until)
 
 void emu_Loop(void)
 {
-	static int mp3_init_done = 0;
 	char fpsbuff[24]; // fps count c string
 	unsigned int tval, tval_thissec = 0; // timing
 	int target_fps, target_frametime, lim_time, tval_diff, i, oldmodes = 0;
@@ -943,12 +941,6 @@ void emu_Loop(void)
 	if (PicoAHW & PAHW_MCD) {
 		// prepare CD buffer
 		PicoCDBufferInit();
-		// mp3...
-		if (!mp3_init_done) {
-			i = mp3_init();
-			mp3_init_done = 1;
-			if (i) { engineState = PGS_Menu; return; }
-		}
 	}
 
 	// prepare sound stuff
@@ -1147,9 +1139,7 @@ void emu_HandleResume(void)
 		lprintf("reopen %s\n", Pico_mcd->TOC.Tracks[0].F != NULL ? "ok" : "failed");
 
 		if (cue_data != NULL) cue_destroy(cue_data);
-	}
-
-	mp3_reopen_file();
+   }
 
 	if (!(Pico_mcd->s68k_regs[0x36] & 1) && (Pico_mcd->scd.Status_CDC & 1))
 		cdda_start_play();

@@ -7,7 +7,6 @@
 #include "psp.h"
 #include "emu.h"
 #include "menu.h"
-#include "mp3.h"
 #include "../common/menu.h"
 #include "../common/emu.h"
 #include "../common/config.h"
@@ -39,8 +38,7 @@ int pico_main(void)
 
 	emu_Init();
 	menu_init();
-	// moved to emu_Loop(), after CPU clock change..
-	//mp3_init();
+   // moved to emu_Loop(), after CPU clock change..
 
 	engineState = PGS_Menu;
 
@@ -59,9 +57,7 @@ int pico_main(void)
 
 			case PGS_ReloadRom:
 				if (emu_ReloadRom(romFileName)) {
-					engineState = PGS_Running;
-					if (mp3_last_error != 0)
-						engineState = PGS_Menu; // send to menu to display mp3 error
+               engineState = PGS_Running;
 				} else {
 					lprintf("PGS_ReloadRom == 0\n");
 					engineState = PGS_Menu;
@@ -107,7 +103,6 @@ int pico_main(void)
 
 	endloop:
 
-	mp3_deinit();
 	emu_Deinit();
 #ifdef GPROF
 	gprof_cleanup();

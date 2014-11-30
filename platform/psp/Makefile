@@ -25,7 +25,7 @@ endif
 
 
 # frontend and stuff
-OBJS += main.o emu.o mp3.o menu.o psp.o asm_utils.o
+OBJS += main.o emu.o menu.o psp.o asm_utils.o
 
 # common
 OBJS += platform/common/emu.o platform/common/menu.o platform/common/fonts.o platform/common/config.o platform/common/readpng.o
@@ -73,10 +73,10 @@ endif
 vpath %.c = ../..
 vpath %.s = ../..
 DIRS = platform platform/psp platform/common pico pico/cd pico/pico pico/sound pico/carthw/svp \
-	zlib unzip cpu cpu/musashi cpu/fame cpu/mz80 cpu/cz80
+	cpu cpu/musashi cpu/fame cpu/mz80 cpu/cz80
 
 
-LIBS += -lpng -lz -lm -lpspgu -lpsppower -lpspaudio -lpsprtc -lpspaudiocodec -lpspkubridge
+LIBS += -lpng -lz -lm -lpspgu -lpsppower -lpspaudio -lpsprtc
 #LIBS += -lpspprof
 LDFLAGS += -Wl,-Map=PicoDrive.map
 
@@ -88,7 +88,7 @@ TARGET = PicoDrive
 EXTRA_TARGETS = mkdirs EBOOT.PBP
 PSP_EBOOT_TITLE = PicoDrive
 PSP_EBOOT_ICON = data/icon.png
-#PSP_EBOOT_PIC1 = .png
+
 ifneq "$(for_15fw)" "1"
 BUILD_PRX = 1
 endif
