@@ -10,7 +10,6 @@
 
 #include "menu.h"
 #include "fonts.h"
-#include "readpng.h"
 #include "lprintf.h"
 #include "common.h"
 #include "emu.h"
@@ -188,8 +187,6 @@ void menu_init(void)
 {
 	int c, l;
 	unsigned char *fd = menu_font_data;
-	char buff[256];
-	FILE *f;
 
 	// generate default font from fontdata8x8
 	memset(menu_font_data, 0, sizeof(menu_font_data));
@@ -210,38 +207,8 @@ void menu_init(void)
 		fd += 8*2/2; // 2 empty lines
 	}
 
-	// load custom font and selector (stored as 1st symbol in font table)
-	readpng(menu_font_data, "skin/font.png", READPNG_FONT);
-	memcpy(menu_font_data, menu_font_data + ((int)'>')*4*10, 4*10); // default selector symbol is '>'
-	readpng(menu_font_data, "skin/selector.png", READPNG_SELECTOR);
+   memcpy(menu_font_data, menu_font_data + ((int)'>')*4*10, 4*10); // default selector symbol is '>'
 
-	// load custom colors
-	f = fopen("skin/skin.txt", "r");
-	if (f != NULL)
-	{
-		lprintf("found skin.txt\n");
-		while (!feof(f))
-		{
-			fgets(buff, sizeof(buff), f);
-			if (buff[0] == '#'  || buff[0] == '/')  continue; // comment
-			if (buff[0] == '\r' || buff[0] == '\n') continue; // empty line
-			if (strncmp(buff, "text_color=", 11) == 0)
-			{
-				int tmp = parse_hex_color(buff+11);
-				if (tmp >= 0) menu_text_color = tmp;
-				else lprintf("skin.txt: parse error for text_color\n");
-			}
-			else if (strncmp(buff, "selection_color=", 16) == 0)
-			{
-				int tmp = parse_hex_color(buff+16);
-				if (tmp >= 0) menu_sel_color = tmp;
-				else lprintf("skin.txt: parse error for selection_color\n");
-			}
-			else
-				lprintf("skin.txt: parse error: %s\n", buff);
-		}
-		fclose(f);
-	}
 }
 
 

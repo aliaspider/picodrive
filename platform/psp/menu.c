@@ -22,7 +22,6 @@
 #include "menu.h"
 #include "../common/menu.h"
 #include "../common/emu.h"
-#include "../common/readpng.h"
 #include "../common/lprintf.h"
 #include "version.h"
 
@@ -41,7 +40,7 @@ static unsigned short bg_buffer[480*272] __attribute__((aligned(16)));
 #define menu_screen psp_screen
 
 void menu_darken_bg(void *dst, const void *src, int pixels, int darker);
-static void menu_prepare_bg(int use_game_bg, int use_fg);
+static void menu_prepare_bg(int use_fg);
 
 
 static unsigned int inp_prev = 0;
@@ -552,7 +551,7 @@ static void draw_savestate_bg(int slot)
 	}
 
 	emu_forcedFrame(0);
-	menu_prepare_bg(1, 0);
+   menu_prepare_bg(0);
 
 	restore_oldstate(oldstate);
 }
@@ -1652,30 +1651,21 @@ void menu_darken_bg(void *dst, const void *src, int pixels, int darker)
 	}
 }
 
-static void menu_prepare_bg(int use_game_bg, int use_fg)
+static void menu_prepare_bg(int use_fg)
 {
-	if (use_game_bg)
-	{
-		// darken the active framebuffer
-		unsigned short *dst = bg_buffer;
-		unsigned short *src = use_fg ? psp_video_get_active_fb() : psp_screen;
-		int i;
-		for (i = 272; i > 0; i--, dst += 480, src += 512)
-			menu_darken_bg(dst, src, 480, 1);
-		//memset32_uncached((int *)(bg_buffer + 480*264), 0, 480*8*2/4);
-	}
-	else
-	{
-		// should really only happen once, on startup..
-		memset32_uncached((int *)(void *)bg_buffer, 0, sizeof(bg_buffer)/4);
-		readpng(bg_buffer, "skin/background.png", READPNG_BG);
-	}
+   // darken the active framebuffer
+   unsigned short *dst = bg_buffer;
+   unsigned short *src = use_fg ? psp_video_get_active_fb() : psp_screen;
+   int i;
+   for (i = 272; i > 0; i--, dst += 480, src += 512)
+      menu_darken_bg(dst, src, 480, 1);
+
 	sceKernelDcacheWritebackAll();
 }
 
 static void menu_gfx_prepare(void)
 {
-	menu_prepare_bg(rom_loaded, 1);
+   menu_prepare_bg(1);
 
 	menu_draw_begin();
 	menu_draw_end();

@@ -28,7 +28,7 @@ endif
 OBJS += main.o emu.o menu.o psp.o asm_utils.o
 
 # common
-OBJS += platform/common/emu.o platform/common/menu.o platform/common/fonts.o platform/common/config.o platform/common/readpng.o
+OBJS += platform/common/emu.o platform/common/menu.o platform/common/fonts.o platform/common/config.o
 OBJS += platform/common/input.o
 
 # Pico
@@ -76,8 +76,7 @@ DIRS = platform platform/psp platform/common pico pico/cd pico/pico pico/sound p
 	cpu cpu/musashi cpu/fame cpu/mz80 cpu/cz80
 
 
-LIBS += -lpng -lz -lm -lpspgu -lpsppower -lpspaudio -lpsprtc
-#LIBS += -lpspprof
+LIBS += -lm -lpspgu -lpsppower -lpspaudio -lpsprtc
 LDFLAGS += -Wl,-Map=PicoDrive.map
 
 CFLAGS += -ISDK/
@@ -169,9 +168,7 @@ endif
 
 # ?
 rel: EBOOT.PBP readme.txt ../game_def.cfg
-	mkdir -p PicoDrive/skin/
 	cp $^ PicoDrive/
-	cp skin/* PicoDrive/skin/
 	zip -9 -r ../../PicoDrive_psp_$(VER).zip PicoDrive
 	rm -rf PicoDrive
 	mkdir bin_to_cso_mp3
@@ -180,9 +177,7 @@ rel: EBOOT.PBP readme.txt ../game_def.cfg
 	rm -rf bin_to_cso_mp3
 
 rel_kxploit: readme.txt ../game_def.cfg
-	mkdir -p PicoDrive/skin/
 	cp $^ PicoDrive/
-	cp skin/* PicoDrive/skin/
 	zip -9 -r ../../PicoDrive_psp_$(VER)_kxploit.zip PicoDrive
 	zip -9 -r ../../PicoDrive_psp_$(VER)_kxploit.zip PicoDrive%
 	mkdir bin_to_cso_mp3
