@@ -328,6 +328,7 @@ enum
 	CPUREG_Z80_MAX_INDEX
 };
 
+extern int mz80_run(int cycles, UINT32 dwClear);
 extern UINT32 mz80exec(UINT32);
 extern UINT32 mz80GetContextSize(void);
 extern UINT32 mz80GetElapsedTicks(UINT32);
@@ -342,6 +343,7 @@ extern void mz80init(void);
 extern void mz80shutdown(void);
 extern UINT32 z80intAddr;
 extern UINT32 z80nmiAddr;
+extern INT32 sdwCyclesRemaining;
 
 // Debugger useful routines
 

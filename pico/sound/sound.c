@@ -395,9 +395,9 @@ static struct z80PortWrite mz80_io_write[]={
   {(UINT16) -1,(UINT16) -1,NULL}
 };
 
-int mz80_run(int cycles)
+int mz80_run(int cycles, UINT32 dwClear)
 {
-  int ticks_pre = mz80GetElapsedTicks(0);
+  int ticks_pre = mz80GetElapsedTicks(dwClear);
   mz80exec(cycles);
   return mz80GetElapsedTicks(0) - ticks_pre;
 }

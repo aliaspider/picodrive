@@ -154,10 +154,11 @@ extern int SekCycleAimS68k;
 #if defined(_USE_MZ80)
 #include "../cpu/mz80/mz80.h"
 
-#define z80_run(cycles)    { mz80GetElapsedTicks(1); mz80_run(cycles) }
-#define z80_run_nr(cycles) mz80_run(cycles)
+#define z80_run(cycles)    mz80_run(cycles, 1)
+#define z80_run_nr(cycles) mz80_run(cycles, 0)
 #define z80_int()          mz80int(0)
 
+#define z80_cyclesLeft     (sdwCyclesRemaining)
 #elif defined(_USE_DRZ80)
 #include "../cpu/DrZ80/drz80.h"
 

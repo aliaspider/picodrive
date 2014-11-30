@@ -64,7 +64,7 @@ static struct MemoryReadByte *psMemRead; /* Read memory structure */
 static struct MemoryWriteByte *psMemWrite; /* Write memory structure */
 static struct z80PortRead *psIoRead; /* Read I/O structure */
 static struct z80PortWrite *psIoWrite; /* Write memory structure */
-static INT32 sdwCyclesRemaining; /* Used as a countdown */
+INT32 sdwCyclesRemaining; /* Used as a countdown */
 static UINT32 dwReturnCode; /* Return code from exec() */
 static UINT32 dwOriginalCycles; /* How many cycles did we start with? */
 static UINT32 dwElapsedTicks;	/* How many ticks did we elapse? */
