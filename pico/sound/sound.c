@@ -254,22 +254,22 @@ PICO_INTERNAL void cdda_start_play(void)
     return;
   }
 
-  if (Pico_mcd->TOC.Tracks[i].ftype == TYPE_MP3)
-  {
-    int pos1024 = 0;
+//  if (Pico_mcd->TOC.Tracks[i].ftype == TYPE_MP3)
+//  {
+//    int pos1024 = 0;
 
-    lba_length = Pico_mcd->TOC.Tracks[i].Length;
-    for (i++; i < Pico_mcd->TOC.Last_Track; i++) {
-      if (Pico_mcd->TOC.Tracks[i].F != NULL) break;
-      lba_length += Pico_mcd->TOC.Tracks[i].Length;
-    }
+//    lba_length = Pico_mcd->TOC.Tracks[i].Length;
+//    for (i++; i < Pico_mcd->TOC.Last_Track; i++) {
+//      if (Pico_mcd->TOC.Tracks[i].F != NULL) break;
+//      lba_length += Pico_mcd->TOC.Tracks[i].Length;
+//    }
 
-    if (lba_offset)
-      pos1024 = lba_offset * 1024 / lba_length;
+//    if (lba_offset)
+//      pos1024 = lba_offset * 1024 / lba_length;
 
-    mp3_start_play(Pico_mcd->TOC.Tracks[index].F, pos1024);
-    return;
-  }
+//    mp3_start_play(Pico_mcd->TOC.Tracks[index].F, pos1024);
+//    return;
+//  }
 
   cdda_stream = Pico_mcd->TOC.Tracks[i].F;
   PicoCDBufferFlush(); // buffering relies on fp not being touched
@@ -349,9 +349,9 @@ static int PsndRender(int offset, int length)
     // note: only 44, 22 and 11 kHz supported, with forced stereo
     int index = Pico_mcd->scd.Cur_Track - 1;
 
-    if (Pico_mcd->TOC.Tracks[index].ftype == TYPE_MP3)
-      mp3_update(buf32, length, stereo);
-    else
+//    if (Pico_mcd->TOC.Tracks[index].ftype == TYPE_MP3)
+//      mp3_update(buf32, length, stereo);
+//    else
       cdda_raw_update(buf32, length);
   }
 

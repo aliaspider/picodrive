@@ -13,50 +13,50 @@
 
 //#define cdprintf(f,...) printf(f "\n",##__VA_ARGS__) // tmp
 
-static int audio_track_mp3(const char *fname, int index)
-{
-	_scd_track *Tracks = Pico_mcd->TOC.Tracks;
-	FILE *tmp_file;
-	int fs, ret;
+//static int audio_track_mp3(const char *fname, int index)
+//{
+//	_scd_track *Tracks = Pico_mcd->TOC.Tracks;
+//	FILE *tmp_file;
+//	int fs, ret;
 
-	tmp_file = fopen(fname, "rb");
-	if (tmp_file == NULL)
-		return -1;
+//	tmp_file = fopen(fname, "rb");
+//	if (tmp_file == NULL)
+//		return -1;
 
-	ret = fseek(tmp_file, 0, SEEK_END);
-	fs = ftell(tmp_file);				// used to calculate length
-	fseek(tmp_file, 0, SEEK_SET);
+//	ret = fseek(tmp_file, 0, SEEK_END);
+//	fs = ftell(tmp_file);				// used to calculate length
+//	fseek(tmp_file, 0, SEEK_SET);
 
-#if DONT_OPEN_MANY_FILES
-	// some systems (like PSP) can't have many open files at a time,
-	// so we work with their names instead.
-	fclose(tmp_file);
-	tmp_file = (void *) strdup(fname);
-#endif
-	Tracks[index].KBtps = (short) mp3_get_bitrate(tmp_file, fs);
-	Tracks[index].KBtps >>= 3;
-	if (ret != 0 || Tracks[index].KBtps <= 0)
-	{
-		elprintf(EL_STATUS, "track %2i: mp3 bitrate %i", index+1, Tracks[index].KBtps);
-#if !DONT_OPEN_MANY_FILES
-		fclose(tmp_file);
-#else
-		free(tmp_file);
-#endif
-		return -1;
-	}
+//#if DONT_OPEN_MANY_FILES
+//	// some systems (like PSP) can't have many open files at a time,
+//	// so we work with their names instead.
+//	fclose(tmp_file);
+//	tmp_file = (void *) strdup(fname);
+//#endif
+//	Tracks[index].KBtps = (short) mp3_get_bitrate(tmp_file, fs);
+//	Tracks[index].KBtps >>= 3;
+//	if (ret != 0 || Tracks[index].KBtps <= 0)
+//	{
+//		elprintf(EL_STATUS, "track %2i: mp3 bitrate %i", index+1, Tracks[index].KBtps);
+//#if !DONT_OPEN_MANY_FILES
+//		fclose(tmp_file);
+//#else
+//		free(tmp_file);
+//#endif
+//		return -1;
+//	}
 
-	Tracks[index].F = tmp_file;
+//	Tracks[index].F = tmp_file;
 
-	// MP3 File
-	Tracks[index].ftype = TYPE_MP3;
-	fs *= 75;
-	fs /= Tracks[index].KBtps * 1000;
-	Tracks[index].Length = fs;
-	Tracks[index].Offset = 0;
+//	// MP3 File
+//	Tracks[index].ftype = TYPE_MP3;
+//	fs *= 75;
+//	fs /= Tracks[index].KBtps * 1000;
+//	Tracks[index].Length = fs;
+//	Tracks[index].Offset = 0;
 
-	return 0;
-}
+//	return 0;
+//}
 
 PICO_INTERNAL int Load_CD_Image(const char *cd_img_name, cd_img_type type)
 {
@@ -121,11 +121,11 @@ PICO_INTERNAL int Load_CD_Image(const char *cd_img_name, cd_img_type type)
 			if (PicoCDLoadProgressCB != NULL) PicoCDLoadProgressCB(i * num_track);
 			index = num_track - 1;
 			Cur_LBA += cue_data->tracks[num_track].pregap;
-			if (cue_data->tracks[num_track].type == CT_MP3) {
-				ret = audio_track_mp3(cue_data->tracks[num_track].fname, index);
-				if (ret != 0) break;
-			}
-			else
+//			if (cue_data->tracks[num_track].type == CT_MP3) {
+//				ret = audio_track_mp3(cue_data->tracks[num_track].fname, index);
+//				if (ret != 0) break;
+//			}
+//			else
 			{
 				Tracks[index].ftype = cue_data->tracks[num_track].type;
 				if (cue_data->tracks[num_track].fname != NULL)
@@ -192,12 +192,13 @@ PICO_INTERNAL int Load_CD_Image(const char *cd_img_name, cd_img_type type)
 			strcat(tmp_name, tmp_ext);
 
 			index = num_track - 1;
-			ret = audio_track_mp3(tmp_name, index);
-			if (ret != 0 && i > 1 && iso_name_len > ext_len) {
-				tmp_name[iso_name_len - ext_len] = 0;
-				strcat(tmp_name, tmp_ext);
-				ret = audio_track_mp3(tmp_name, index);
-			}
+//			ret = audio_track_mp3(tmp_name, index);
+//			if (ret != 0 && i > 1 && iso_name_len > ext_len) {
+//				tmp_name[iso_name_len - ext_len] = 0;
+//				strcat(tmp_name, tmp_ext);
+//				ret = audio_track_mp3(tmp_name, index);
+//			}
+         ret = 0;
 
 			if (ret == 0)
 			{

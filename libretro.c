@@ -347,9 +347,9 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 void retro_get_system_info(struct retro_system_info *info)
 {
 	memset(info, 0, sizeof(*info));
-	info->library_name = "PicoDrive";
+   info->library_name = "PicoDrive 1.51b";
 	info->library_version = VERSION;
-	info->valid_extensions = "bin|gen|smd|md|32x|cue|iso|sms";
+   info->valid_extensions = "bin|gen|smd|md|cue|iso|sms";
 	info->need_fullpath = true;
 }
 
@@ -688,67 +688,58 @@ static const char *find_bios(int *region, const char *cd_fname)
 
 bool retro_load_game(const struct retro_game_info *info)
 {
-//   media_type_e media_type;
-//	static char carthw_path[256];
-//	size_t i;
+   static char carthw_path[256];
+   size_t i;
 
-//	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
-//	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
-//      if (log_cb)
-//         log_cb(RETRO_LOG_ERROR, "RGB565 support required, sorry\n");
-//		return false;
-//	}
+   enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
+   if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "RGB565 support required, sorry\n");
+      return false;
+   }
 
-//	if (info == NULL || info->path == NULL) {
-//      if (log_cb)
-//         log_cb(RETRO_LOG_ERROR, "info->path required\n");
-//		return false;
-//	}
+   if (info == NULL || info->path == NULL) {
+      if (log_cb)
+         log_cb(RETRO_LOG_ERROR, "info->path required\n");
+      return false;
+   }
 
-//	for (i = 0; i < sizeof(disks) / sizeof(disks[0]); i++) {
-//		if (disks[i].fname != NULL) {
-//			free(disks[i].fname);
-//			disks[i].fname = NULL;
-//		}
-//	}
+   for (i = 0; i < sizeof(disks) / sizeof(disks[0]); i++) {
+      if (disks[i].fname != NULL) {
+         free(disks[i].fname);
+         disks[i].fname = NULL;
+      }
+   }
 
-//	disk_current_index = 0;
-//	disk_count = 1;
-//	disks[0].fname = strdup(info->path);
+   disk_current_index = 0;
+   disk_count = 1;
+   disks[0].fname = strdup(info->path);
 
-//	make_system_path(carthw_path, sizeof(carthw_path), "carthw", ".cfg");
+   make_system_path(carthw_path, sizeof(carthw_path), "carthw", ".cfg");
 
-//	media_type = PicoLoadMedia(info->path, carthw_path,
-//			find_bios, NULL);
+//   PicoCartInsert
+//   media_type = PicoLoadMedia(info->path, carthw_path,
+//         find_bios, NULL);
+/* new */
+   unsigned int rom_size = 0;
+   unsigned char *rom_data = NULL;
+   pm_file *rom = pm_open(info->path);
+   PicoCartUnload();
+   PicoCartLoad(rom, &rom_data, &rom_size);
+   pm_close(rom);
+   rom = NULL;
+/* new */
 
-//	switch (media_type) {
-//	case PM_BAD_DETECT:
-//      if (log_cb)
-//         log_cb(RETRO_LOG_ERROR, "Failed to detect ROM/CD image type.\n");
-//		return false;
-//	case PM_BAD_CD:
-//      if (log_cb)
-//         log_cb(RETRO_LOG_ERROR, "Invalid CD image\n");
-//		return false;
-//	case PM_BAD_CD_NO_BIOS:
-//      if (log_cb)
-//         log_cb(RETRO_LOG_ERROR, "Missing BIOS\n");
-//		return false;
-//	case PM_ERROR:
-//      if (log_cb)
-//         log_cb(RETRO_LOG_ERROR, "Load error\n");
-//		return false;
-//	default:
-//		break;
-//	}
+   PicoReset();
 
-//	PicoLoopPrepare();
+//   PicoLoopPrepare();
 
-//	PicoWriteSound = snd_write;
-//	memset(sndBuffer, 0, sizeof(sndBuffer));
-//	PsndOut = sndBuffer;
-//	PsndRerate(0);
+//   PicoWriteSound = snd_write;
+//   memset(sndBuffer, 0, sizeof(sndBuffer));
+//   PsndOut = sndBuffer;
+   PsndRerate(0);
 
+   g_m68kcontext = &PicoCpuFM68k;
 	return true;
 }
 

@@ -13,10 +13,15 @@ AR = psp-ar
 CFLAGS += -I../.. -I. -DNO_SYNC -D_ASM_DRAW_C_AMIPS
 CFLAGS += -Wall -Winline -G0
 
+
 ifeq ($(DEBUG),1)
-CFLAGS += -g -O0
+CFLAGS += -g
+OPTIMIZE =  -O0
+OPTIMIZE_SAFE = -O0
 else
-CFLAGS += -O2 -ftracer -fstrength-reduce -ffast-math
+CFLAGS += -ftracer -fstrength-reduce -ffast-math
+OPTIMIZE =  -O3
+OPTIMIZE_SAFE = -O2
 endif
 
 
@@ -46,7 +51,7 @@ OBJS += pico/pico/pico.o pico/pico/memory.o pico/pico/xpcm.o
 # Pico - sound
 
 OBJS += pico/sound/sound.o
-OBJS += platform/psp/mp3.o
+#OBJS += platform/psp/mp3.o
 
 OBJS += pico/sound/mix.o
 OBJS += pico/sound/sn76496.o pico/sound/ym2612.o
@@ -61,6 +66,8 @@ OBJS += zlib/gzio.o
 
 OBJS += libretro.o
 CFLAGS += -D__LIBRETRO__ -DNO_MMAP
+
+OBJS_BASE := $(OBJS)
 
 # CPU cores
 ifeq "$(use_musashi)" "1"
@@ -100,7 +107,7 @@ $(TARGET): $(OBJS)
 
 .c.o:
 	@echo ">>>" $<
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTIMIZE) -c $< -o $@
 
 
 .s.o:
@@ -112,23 +119,23 @@ cpu/musashi/m68kops.c :
 
 cpu/fame/famec.o : cpu/fame/famec.c
 	@echo ">>>" $<
-	$(CC) $(CFLAGS) -Wno-unused -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTIMIZE_SAFE) -Wno-unused -c $< -o $@
 
 pico/misc.o : pico/misc.c
 	@echo ">>>" $<
-	$(CC) $(CFLAGS) -c $< -o $@ -D_ASM_MISC_C_AMIPS
+	$(CC) $(CFLAGS) $(OPTIMIZE) -c $< -o $@ -D_ASM_MISC_C_AMIPS
 
 pico/memory.o : pico/memory.c
 	@echo ">>>" $<
-	$(CC) $(CFLAGS) -O2 -c $< -o $@ -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
+	$(CC) $(CFLAGS) $(OPTIMIZE) -c $< -o $@ -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
 
 pico/cd/memory.o : pico/cd/memory.c
 	@echo ">>>" $<
-	$(CC) $(CFLAGS) -O2 -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTIMIZE) -c $< -o $@
 
 pico/cd/gfx_cd.o : pico/cd/gfx_cd.c
 	@echo ">>>" $<
-	$(CC) $(CFLAGS) -O2 -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTIMIZE) -c $< -o $@
 
 readme.txt: tools/textfilter ../base_readme.txt
 	tools/textfilter ../base_readme.txt $@ PSP
@@ -147,5 +154,6 @@ $(KU_OBJS): KUBridge.S
 	$(CC) $(CFLAGS) -DF_$* $< -c -o $@
 
 clean:
-		$(RM) $(TARGET) $(OBJS)
+#	$(RM) $(TARGET) $(OBJS_BASE)
+	$(RM) $(TARGET) $(OBJS)
 

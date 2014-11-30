@@ -131,15 +131,15 @@ pico/misc.o : ../../pico/misc.c
 
 pico/memory.o : ../../pico/memory.c
 	@echo ">>>" $<
-	$(CC) $(CFLAGS) -O2 -c $< -o $@ -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
+	$(CC) $(CFLAGS) -c $< -o $@ -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
 
 pico/cd/memory.o : ../../pico/cd/memory.c
 	@echo ">>>" $<
-	$(CC) $(CFLAGS) -O2 -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 pico/cd/gfx_cd.o : ../../pico/cd/gfx_cd.c
 	@echo ">>>" $<
-	$(CC) $(CFLAGS) -O2 -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 readme.txt: ../../tools/textfilter ../base_readme.txt
 	../../tools/textfilter ../base_readme.txt $@ PSP
