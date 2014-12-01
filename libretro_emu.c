@@ -295,7 +295,7 @@ int emu_ReloadRom(char* rom_fname)
    unsigned char* rom_data = NULL;
    char ext[5];
    pm_file* rom = NULL;
-   int ret, cd_state, cd_region, cfg_loaded = 0;
+   int ret, cd_state, cd_region;
 
    lprintf("emu_ReloadRom(%s)\n", rom_fname);
 
@@ -328,9 +328,6 @@ int emu_ReloadRom(char* rom_fname)
       // valid CD image, check for BIOS..
 
       // we need to have config loaded at this point
-      ret = emu_ReadConfig(1, 1);
-      if (!ret) emu_ReadConfig(0, 1);
-      cfg_loaded = 1;
 
       if (PicoRegionOverride)
       {
@@ -366,8 +363,6 @@ int emu_ReloadRom(char* rom_fname)
       goto fail;
    }
 
-   menu_romload_prepare(used_rom_name); // also CD load
-
    PicoCartUnload();
    rom_loaded = 0;
 
@@ -376,7 +371,7 @@ int emu_ReloadRom(char* rom_fname)
       if (ret == 2) lprintf("Out of memory\n");
       else if (ret == 3) lprintf("Read failed\n");
       else               lprintf("PicoCartLoad() failed.\n");
-      goto fail2;
+      goto fail;
    }
    pm_close(rom);
    rom = NULL;
@@ -388,23 +383,18 @@ int emu_ReloadRom(char* rom_fname)
    {
       if (rom_data) free(rom_data);
       lprintf("Not a ROM selected.\n");
-      goto fail2;
+      goto fail;
    }
 
    // load config for this ROM (do this before insert to get correct region)
    if (!(PicoAHW & PAHW_MCD))
       memcpy(id_header, rom_data + 0x100, sizeof(id_header));
-   if (!cfg_loaded)
-   {
-      ret = emu_ReadConfig(1, 1);
-      if (!ret) emu_ReadConfig(0, 1);
-   }
 
    lprintf("PicoCartInsert(%p, %d);\n", rom_data, rom_size);
    if (PicoCartInsert(rom_data, rom_size))
    {
       lprintf("Failed to load ROM.\n");
-      goto fail2;
+      goto fail;
    }
 
    // insert CD if it was detected
@@ -414,11 +404,9 @@ int emu_ReloadRom(char* rom_fname)
       if (ret != 0)
       {
          lprintf("Insert_CD() failed, invalid CD image?\n");
-         goto fail2;
+         goto fail;
       }
    }
-
-   menu_romload_end();
 
    if (PicoPatches)
    {
@@ -456,16 +444,14 @@ int emu_ReloadRom(char* rom_fname)
    emu_noticeMsgUpdated();
 
    // load SRAM for this ROM
-   if (currentConfig.EmuOpt & EOPT_USE_SRAM)
-      emu_SaveLoadGame(1, 1);
+
+//  emu_SaveLoadGame(1, 1);
 
    strncpy(loadedRomFName, rom_fname, sizeof(loadedRomFName) - 1);
    loadedRomFName[sizeof(loadedRomFName) - 1] = 0;
    rom_loaded = 1;
    return 1;
 
-fail2:
-   menu_romload_end();
 fail:
    if (rom != NULL) pm_close(rom);
    return 0;
@@ -500,120 +486,6 @@ static void romfname_ext(char* dst, const char* prefix, const char* ext)
    dst[511 - 8] = 0;
    if (dst[strlen(dst) - 4] == '.') dst[strlen(dst) - 4] = 0;
    if (ext) strcat(dst, ext);
-}
-
-
-void emu_packConfig(void)
-{
-   currentConfig.s_PicoOpt = PicoOpt;
-   currentConfig.s_PsndRate = PsndRate;
-   currentConfig.s_PicoRegion = PicoRegionOverride;
-   currentConfig.s_PicoAutoRgnOrder = PicoAutoRgnOrder;
-   currentConfig.s_PicoCDBuffers = PicoCDBuffers;
-}
-
-void emu_unpackConfig(void)
-{
-   PicoOpt = currentConfig.s_PicoOpt;
-   PsndRate = currentConfig.s_PsndRate;
-   PicoRegionOverride = currentConfig.s_PicoRegion;
-   PicoAutoRgnOrder = currentConfig.s_PicoAutoRgnOrder;
-   PicoCDBuffers = currentConfig.s_PicoCDBuffers;
-}
-
-static void emu_setDefaultConfig(void)
-{
-   memcpy(&currentConfig, &defaultConfig, sizeof(currentConfig));
-   emu_unpackConfig();
-}
-
-
-void emu_writelrom(void)
-{
-   char cfg[512];
-   make_config_cfg(cfg);
-   config_writelrom(cfg);
-
-}
-
-#ifdef PSP
-#define MAX_COMBO_KEY 23
-#else
-#define MAX_COMBO_KEY 31
-#endif
-
-void emu_findKeyBindCombos(void)
-{
-   int act, u;
-
-   // find out which keys and actions are combos
-   kb_combo_keys = kb_combo_acts = 0;
-   for (act = 0; act < 32; act++)
-   {
-      int keyc = 0, keyc2 = 0;
-      if (act == 16 || act == 17) continue; // player2 flag
-      if (act > 17)
-      {
-         for (u = 0; u <= MAX_COMBO_KEY; u++)
-            if (currentConfig.KeyBinds[u] & (1 << act)) keyc++;
-      }
-      else
-      {
-         for (u = 0; u <= MAX_COMBO_KEY; u++)
-            if ((currentConfig.KeyBinds[u] & 0x30000) == 0 && // pl. 1
-                  (currentConfig.KeyBinds[u] & (1 << act))) keyc++;
-         for (u = 0; u <= MAX_COMBO_KEY; u++)
-            if ((currentConfig.KeyBinds[u] & 0x30000) == 1 && // pl. 2
-                  (currentConfig.KeyBinds[u] & (1 << act))) keyc2++;
-         if (keyc2 > keyc) keyc = keyc2;
-      }
-      if (keyc > 1)
-      {
-         // loop again and mark those keys and actions as combo
-         for (u = 0; u <= MAX_COMBO_KEY; u++)
-         {
-            if (currentConfig.KeyBinds[u] & (1 << act))
-            {
-               kb_combo_keys |= 1 << u;
-               kb_combo_acts |= 1 << act;
-            }
-         }
-      }
-   }
-
-   // printf("combo keys/acts: %08x %08x\n", kb_combo_keys, kb_combo_acts);
-}
-
-
-void emu_updateMovie(void)
-{
-   int offs = Pico.m.frame_count * 3 + 0x40;
-   if (offs + 3 > movie_size)
-   {
-      free(movie_data);
-      movie_data = 0;
-      strcpy(noticeMsg, "END OF MOVIE.");
-      lprintf("END OF MOVIE.\n");
-      emu_noticeMsgUpdated();
-   }
-   else
-   {
-      // MXYZ SACB RLDU
-      PicoPad[0] = ~movie_data[offs]   & 0x8f; // ! SCBA RLDU
-      if (!(movie_data[offs]   & 0x10)) PicoPad[0] |= 0x40; // C
-      if (!(movie_data[offs]   & 0x20)) PicoPad[0] |= 0x10; // A
-      if (!(movie_data[offs]   & 0x40)) PicoPad[0] |= 0x20; // B
-      PicoPad[1] = ~movie_data[offs + 1] & 0x8f; // ! SCBA RLDU
-      if (!(movie_data[offs + 1] & 0x10)) PicoPad[1] |= 0x40; // C
-      if (!(movie_data[offs + 1] & 0x20)) PicoPad[1] |= 0x10; // A
-      if (!(movie_data[offs + 1] & 0x40)) PicoPad[1] |= 0x20; // B
-      PicoPad[0] |= (~movie_data[offs + 2] & 0x0A) << 8; // ! MZYX
-      if (!(movie_data[offs + 2] & 0x01)) PicoPad[0] |= 0x0400; // X
-      if (!(movie_data[offs + 2] & 0x04)) PicoPad[0] |= 0x0100; // Z
-      PicoPad[1] |= (~movie_data[offs + 2] & 0xA0) << 4; // ! MZYX
-      if (!(movie_data[offs + 2] & 0x10)) PicoPad[1] |= 0x0400; // X
-      if (!(movie_data[offs + 2] & 0x40)) PicoPad[1] |= 0x0100; // Z
-   }
 }
 
 
@@ -787,34 +659,6 @@ int emu_SaveLoadGame(int load, int sram)
    }
 }
 
-void emu_changeFastForward(int set_on)
-{
-   static void* set_PsndOut = NULL;
-   static int set_Frameskip, set_EmuOpt, is_on = 0;
-
-   if (set_on && !is_on)
-   {
-      set_PsndOut = PsndOut;
-      set_Frameskip = currentConfig.Frameskip;
-      set_EmuOpt = currentConfig.EmuOpt;
-      PsndOut = NULL;
-      currentConfig.Frameskip = 8;
-      currentConfig.EmuOpt &= ~4;
-      currentConfig.EmuOpt |= 0x40000;
-      is_on = 1;
-      strcpy(noticeMsg, "FAST FORWARD   ");
-      emu_noticeMsgUpdated();
-   }
-   else if (!set_on && is_on)
-   {
-      PsndOut = set_PsndOut;
-      currentConfig.Frameskip = set_Frameskip;
-      currentConfig.EmuOpt = set_EmuOpt;
-      PsndRerate(1);
-      is_on = 0;
-   }
-}
-
 void emu_RunEventsPico(unsigned int events)
 {
    if (events & (1 << 3))
@@ -850,33 +694,6 @@ void emu_RunEventsPico(unsigned int events)
       sprintf(noticeMsg, "Page %i                 ", PicoPicohw.page);
       emu_noticeMsgUpdated();
    }
-}
-
-void emu_DoTurbo(int* pad, int acts)
-{
-   static int turbo_pad = 0;
-   static unsigned char turbo_cnt[3] = { 0, 0, 0 };
-   int inc = currentConfig.turbo_rate * 2;
-
-   if (acts & 0x1000)
-   {
-      turbo_cnt[0] += inc;
-      if (turbo_cnt[0] >= 60)
-         turbo_pad ^= 0x10, turbo_cnt[0] = 0;
-   }
-   if (acts & 0x2000)
-   {
-      turbo_cnt[1] += inc;
-      if (turbo_cnt[1] >= 60)
-         turbo_pad ^= 0x20, turbo_cnt[1] = 0;
-   }
-   if (acts & 0x4000)
-   {
-      turbo_cnt[2] += inc;
-      if (turbo_cnt[2] >= 60)
-         turbo_pad ^= 0x40, turbo_cnt[2] = 0;
-   }
-   *pad |= turbo_pad & (acts >> 8);
 }
 
 

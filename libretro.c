@@ -30,8 +30,12 @@ static retro_audio_sample_batch_t audio_batch_cb;
 static void* vout_buf;
 static int vout_width, vout_height, vout_offset;
 
+//#ifdef PSP
+//unsigned char* PicoDraw2FB = (unsigned char*)0x44100000;
+//#endif
+
 #ifdef PSP
-unsigned char* PicoDraw2FB = (unsigned char*)0x44100000;
+unsigned char* PicoDraw2FB = NULL;
 #endif
 
 #ifdef _MSC_VER
@@ -56,9 +60,10 @@ void lprintf(const char* fmt, ...)
    va_list ap;
    va_start(ap, fmt);
    vsprintf(buffer, fmt, ap);
+   va_end(ap);
    /* TODO - add 'level' param for warning/error messages? */
    if (log_cb)
-      log_cb(RETRO_LOG_INFO, "%s\n", fmt);
+      log_cb(RETRO_LOG_INFO, "%s", buffer);
 }
 
 
@@ -672,6 +677,7 @@ void retro_run(void)
          if (input_state_cb(pad, RETRO_DEVICE_JOYPAD, 0, i))
             PicoPad[pad] |= retro_pico_map[i];
 
+   PicoDraw2FB = vout_buf;
    PicoFrame();
 
    video_cb((short*)vout_buf + vout_offset,
@@ -715,6 +721,7 @@ void retro_init(void)
    vout_width = 320;
    vout_height = 240;
    vout_buf = malloc(VOUT_MAX_WIDTH * VOUT_MAX_HEIGHT * 2);
+   PicoDraw2FB = vout_buf;
 
    PicoInit();
    PicoDrawSetColorFormat(1); // 0=BGR444, 1=RGB555, 2=8bit(HighPal pal)

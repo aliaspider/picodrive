@@ -419,24 +419,6 @@ static void draw_pico_ptr(void)
 	p[1023] = 0xe0; p[1024] = 0xf0; p[1025] = 0xe0;
 }
 
-
-#if 0
-static void dbg_text(void)
-{
-	int *p, h, len;
-	char text[128];
-
-	sprintf(text, "sl: %i, 16b: %i", g_vertices[0].u == 0 && g_vertices[1].u == g_vertices[1].x, blit_16bit_mode);
-	len = strlen(text) * 8 / 2;
-	for (h = 0; h < 8; h++) {
-		p = (int *) ((unsigned short *) psp_screen+2+512*(256+h));
-		p = (int *) ((int)p & ~3); // align
-		memset32_uncached(p, 0, len);
-	}
-	emu_textOut16(2, 256, text);
-}
-#endif
-
 /* called after rendering is done, but frame emulation is not finished */
 void blit1(void)
 {
