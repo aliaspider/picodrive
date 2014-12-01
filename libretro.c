@@ -34,9 +34,9 @@ static int vout_width, vout_height, vout_offset;
 //unsigned char* PicoDraw2FB = (unsigned char*)0x44100000;
 //#endif
 
-#ifdef PSP
+//#ifdef PSP
 unsigned char* PicoDraw2FB = NULL;
-#endif
+//#endif
 
 #ifdef _MSC_VER
 static short sndBuffer[2 * 44100 / 50];
@@ -524,9 +524,9 @@ bool retro_load_game(const struct retro_game_info* info)
       PicoCDBufferInit();
    }
 
-   //   PicoWriteSound = snd_write;
-   //   memset(sndBuffer, 0, sizeof(sndBuffer));
-   //   PsndOut = sndBuffer;
+   PicoWriteSound = snd_write;
+   memset(sndBuffer, 0, sizeof(sndBuffer));
+   PsndOut = sndBuffer;
    PsndRerate(0);
 
    g_m68kcontext = &PicoCpuFM68k;
@@ -609,7 +609,7 @@ static const unsigned short retro_pico_map[] =
 
 static void snd_write(int len)
 {
-   audio_batch_cb(PsndOut, len / 4);
+   audio_batch_cb(PsndOut, len);
 }
 
 //static enum input_device input_name_to_val(const char *name)
@@ -678,10 +678,12 @@ void retro_run(void)
             PicoPad[pad] |= retro_pico_map[i];
 
    PicoDraw2FB = vout_buf;
+   PicoSkipFrame = 0;
    PicoFrame();
+   video_cb((short*)vout_buf,320, 240, 640);
 
-   video_cb((short*)vout_buf + vout_offset,
-            vout_width, vout_height, vout_width * 2);
+//   video_cb((short*)vout_buf + vout_offset,
+//            vout_width, vout_height, vout_width * 2);
 }
 
 static void check_system_specs(void)
@@ -706,13 +708,13 @@ void retro_init(void)
 
    environ_cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, &disk_control);
 
-   // PicoOpt = POPT_EN_STEREO|POPT_EN_FM|POPT_EN_PSG|POPT_EN_Z80
-   //    | POPT_EN_MCD_PCM|POPT_EN_MCD_CDDA|POPT_EN_MCD_GFX
-   ////     | POPT_EN_32X|POPT_EN_PWM
-   //    | POPT_ACC_SPRITES|POPT_DIS_32C_BORDER;
+    PicoOpt = POPT_EN_STEREO|POPT_EN_FM|POPT_EN_PSG|POPT_EN_Z80
+       | POPT_EN_MCD_PCM|POPT_EN_MCD_CDDA|POPT_EN_MCD_GFX
+   //     | POPT_EN_32X|POPT_EN_PWM
+       | POPT_ACC_SPRITES|POPT_DIS_32C_BORDER;
 
-   PicoOpt = 0x0f | POPT_EN_MCD_PCM | POPT_EN_MCD_CDDA | POPT_EN_MCD_GFX |
-             POPT_ACC_SPRITES;
+//   PicoOpt = 0x0f | POPT_EN_MCD_PCM | POPT_EN_MCD_CDDA | POPT_EN_MCD_GFX |
+//             POPT_ACC_SPRITES;
    PsndRate = 44100;
    PicoAutoRgnOrder = 0x184; // US, EU, JP
    PicoRegionOverride = 0x0;
