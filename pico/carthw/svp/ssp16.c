@@ -540,7 +540,7 @@ static u32 pm_io(int reg, int write, u32 d)
 			else if ((mode & 0x47ff) == 0x0018) // DRAM
 			{
 				int inc = get_inc(mode);
-				elprintf(EL_SVP, "ssp PM%i DRAM r [%06x] %04x (inc %i)", reg, CADDR, dram[addr]);
+            elprintf(EL_SVP, "ssp PM%i DRAM r [%06x] %04x (inc %i)", reg, CADDR, dram[addr], inc);
 				d = dram[addr];
 				ssp->pmac_read[reg] += inc;
 			}

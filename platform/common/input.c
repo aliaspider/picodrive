@@ -167,23 +167,13 @@ void in_set_blocking(int is_blocking)
  */
 int in_update_keycode(int *dev_id_out, int *is_down_out)
 {
-	int result = 0, dev_id, is_down, result_menu;
+   int result = 0, result_menu;
 
-	/* keep track of menu key state, to allow mixing
-	 * in_update_keycode() and in_update_menu() calls */
+   /* keep track of menu key state, to allow mixing
+    * in_update_keycode() and in_update_menu() calls */
    result_menu = in_driver.menu_translate(result);
-	if (result_menu != 0) {
-		if (is_down)
-			menu_key_state |=  result_menu;
-		else
-			menu_key_state &= ~result_menu;
-	}
-
-	if (dev_id_out != NULL)
-		*dev_id_out = dev_id;
-	if (is_down_out != NULL)
-		*is_down_out = is_down;
-	return result;
+   menu_key_state |=  result_menu;
+   return result;
 }
 
 /* 

@@ -243,15 +243,7 @@ static __inline void SekRunM68k(int cyc)
   int cyc_do;
   SekCycleAim+=cyc;
   if ((cyc_do=SekCycleAim-SekCycleCnt) <= 0) return;
-#if defined(EMU_C68K)
-  PicoCpuCM68k.cycles=cyc_do;
-  CycloneRun(&PicoCpuCM68k);
-  SekCycleCnt+=cyc_do-PicoCpuCM68k.cycles;
-#elif defined(EMU_M68K)
-  SekCycleCnt+=m68k_execute(cyc_do);
-#elif defined(EMU_F68K)
   SekCycleCnt+=fm68k_emulate(cyc_do+1, 0, 0);
-#endif
 }
 
 #include "pico_cmn.c"

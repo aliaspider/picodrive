@@ -120,7 +120,7 @@ static void carthw_realtec_write8(unsigned int a, unsigned int d, int realsize)
 	if (realtec_bank >= 0 && realtec_size >= 0 &&
 		(realtec_bank != bank_old || realtec_size != size_old))
 	{
-		elprintf(EL_ANOMALY, "realtec: new bank %06x, size %06x", realtec_bank, realtec_size, SekPc);
+      elprintf(EL_ANOMALY, "realtec: new bank %06x, size %06x @ %06x", realtec_bank, realtec_size, SekPc);
 		if (realtec_size > realtec_romsize - realtec_bank || realtec_bank >= realtec_romsize)
 		{
 			elprintf(EL_ANOMALY, "realtec: bank too large / out of range?");

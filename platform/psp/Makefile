@@ -1,8 +1,8 @@
 # pspdev is expected to be in path
 PSPSDK = $(shell psp-config --pspsdk-path)
 
-CFLAGS += -I../.. -I. -D_ASM_DRAW_C_AMIPS -DEMU_F68K
-CFLAGS += -Wall -Winline -G0
+CFLAGS += -I../.. -I. -D_ASM_DRAW_C_AMIPS
+CFLAGS += -Wall -Winline -G0 -Wno-char-subscripts
 
 ifeq ($(DEBUG),1)
 CFLAGS += -g -O0

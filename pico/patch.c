@@ -248,7 +248,7 @@ int PicoPatchLoad(const char *fname)
 
 		llen = strlen(buff);
 		for (clen = 0; clen < llen; clen++)
-			if (isspace(buff[clen])) break;
+         if (isspace(buff[clen])) break;
 		buff[clen] = 0;
 
 		if (clen > 11 || clen < 8)

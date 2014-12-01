@@ -9,9 +9,6 @@
 
 #include "pico_int.h"
 
-
-static char* rom_exts[] = { "bin", "gen", "smd", "iso" };
-
 void (*PicoCartUnloadHook)(void) = NULL;
 
 void (*PicoCartLoadProgressCB)(int percent) = NULL;

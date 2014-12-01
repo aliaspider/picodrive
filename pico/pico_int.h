@@ -25,38 +25,13 @@
 #define PICO_INTERNAL_ASM
 #endif
 
-// to select core, define EMU_C68K, EMU_M68K or EMU_F68K in your makefile or project
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
 // ----------------------- 68000 CPU -----------------------
-#ifdef EMU_C68K
-#include "../cpu/Cyclone/Cyclone.h"
-extern struct Cyclone PicoCpuCM68k, PicoCpuCS68k;
-#define SekCyclesLeftNoMCD PicoCpuCM68k.cycles // cycles left for this run
-#define SekCyclesLeft \
-	(((PicoAHW&1) && (PicoOpt & POPT_EN_MCD_PSYNC)) ? (SekCycleAim-SekCycleCnt) : SekCyclesLeftNoMCD)
-#define SekCyclesLeftS68k \
-	((PicoOpt & POPT_EN_MCD_PSYNC) ? (SekCycleAimS68k-SekCycleCntS68k) : PicoCpuCS68k.cycles)
-#define SekSetCyclesLeftNoMCD(c) PicoCpuCM68k.cycles=c
-#define SekSetCyclesLeft(c) { \
-	if ((PicoAHW&1) && (PicoOpt & POPT_EN_MCD_PSYNC)) SekCycleCnt=SekCycleAim-(c); else SekSetCyclesLeftNoMCD(c); \
-}
-#define SekPc (PicoCpuCM68k.pc-PicoCpuCM68k.membase)
-#define SekPcS68k (PicoCpuCS68k.pc-PicoCpuCS68k.membase)
-#define SekSetStop(x) { PicoCpuCM68k.state_flags&=~1; if (x) { PicoCpuCM68k.state_flags|=1; PicoCpuCM68k.cycles=0; } }
-#define SekSetStopS68k(x) { PicoCpuCS68k.state_flags&=~1; if (x) { PicoCpuCS68k.state_flags|=1; PicoCpuCS68k.cycles=0; } }
-#define SekIsStoppedS68k() (PicoCpuCS68k.state_flags&1)
-#define SekShouldInterrupt (PicoCpuCM68k.irq > (PicoCpuCM68k.srh&7))
 
-#define SekInterrupt(i) PicoCpuCM68k.irq=i
-
-#endif
-
-#ifdef EMU_F68K
 #include "../cpu/fame/fame.h"
 extern M68K_CONTEXT PicoCpuFM68k, PicoCpuFS68k;
 #define SekCyclesLeftNoMCD PicoCpuFM68k.io_cycle_counter
@@ -80,46 +55,7 @@ extern M68K_CONTEXT PicoCpuFM68k, PicoCpuFS68k;
 }
 #define SekIsStoppedS68k() (PicoCpuFS68k.execinfo&FM68K_HALTED)
 #define SekShouldInterrupt fm68k_would_interrupt()
-
 #define SekInterrupt(irq) PicoCpuFM68k.interrupts[0]=irq
-
-#endif
-
-#ifdef EMU_M68K
-#include "../cpu/musashi/m68kcpu.h"
-extern m68ki_cpu_core PicoCpuMM68k, PicoCpuMS68k;
-#ifndef SekCyclesLeft
-#define SekCyclesLeftNoMCD PicoCpuMM68k.cyc_remaining_cycles
-#define SekCyclesLeft \
-	(((PicoAHW&1) && (PicoOpt & POPT_EN_MCD_PSYNC)) ? (SekCycleAim-SekCycleCnt) : SekCyclesLeftNoMCD)
-#define SekCyclesLeftS68k \
-	((PicoOpt & POPT_EN_MCD_PSYNC) ? (SekCycleAimS68k-SekCycleCntS68k) : PicoCpuMS68k.cyc_remaining_cycles)
-#define SekSetCyclesLeftNoMCD(c) SET_CYCLES(c)
-#define SekSetCyclesLeft(c) { \
-	if ((PicoAHW&1) && (PicoOpt & POPT_EN_MCD_PSYNC)) SekCycleCnt=SekCycleAim-(c); else SET_CYCLES(c); \
-}
-#define SekPc m68k_get_reg(&PicoCpuMM68k, M68K_REG_PC)
-#define SekPcS68k m68k_get_reg(&PicoCpuMS68k, M68K_REG_PC)
-#define SekSetStop(x) { \
-	if(x) { SET_CYCLES(0); PicoCpuMM68k.stopped=STOP_LEVEL_STOP; } \
-	else PicoCpuMM68k.stopped=0; \
-}
-#define SekSetStopS68k(x) { \
-	if(x) { SET_CYCLES(0); PicoCpuMS68k.stopped=STOP_LEVEL_STOP; } \
-	else PicoCpuMS68k.stopped=0; \
-}
-#define SekIsStoppedS68k() (PicoCpuMS68k.stopped==STOP_LEVEL_STOP)
-#define SekShouldInterrupt (CPU_INT_LEVEL > FLAG_INT_MASK)
-
-#define SekInterrupt(irq) { \
-	void *oldcontext = m68ki_cpu_p; \
-	m68k_set_context(&PicoCpuMM68k); \
-	m68k_set_irq(irq); \
-	m68k_set_context(oldcontext); \
-}
-
-#endif
-#endif
 
 extern int SekCycleCnt; // cycles done in this frame
 extern int SekCycleAim; // cycle aim

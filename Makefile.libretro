@@ -45,7 +45,6 @@ CFLAGS += -D__LIBRETRO__ -DNO_MMAP
 OBJS_BASE := $(OBJS)
 
 # CPU cores
-CFLAGS += -DEMU_F68K
 OBJS += cpu/fame/famec.o
 
 # z80

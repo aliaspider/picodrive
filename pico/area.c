@@ -48,25 +48,6 @@ PICO_INTERNAL void PicoAreaPackCpu(unsigned char *cpu, int is_sub)
 {
   unsigned int pc=0;
 
-#if defined(EMU_C68K)
-  struct Cyclone *context = is_sub ? &PicoCpuCS68k : &PicoCpuCM68k;
-  memcpy(cpu,context->d,0x40);
-  pc=context->pc-context->membase;
-  *(unsigned int *)(cpu+0x44)=CycloneGetSr(context);
-  *(unsigned int *)(cpu+0x48)=context->osp;
-  cpu[0x4c] = context->irq;
-  cpu[0x4d] = context->state_flags & 1;
-#elif defined(EMU_M68K)
-  void *oldcontext = m68ki_cpu_p;
-  m68k_set_context(is_sub ? &PicoCpuMS68k : &PicoCpuMM68k);
-  memcpy(cpu,m68ki_cpu_p->dar,0x40);
-  pc=m68ki_cpu_p->pc;
-  *(unsigned int  *)(cpu+0x44)=m68k_get_reg(NULL, M68K_REG_SR);
-  *(unsigned int  *)(cpu+0x48)=m68ki_cpu_p->sp[m68ki_cpu_p->s_flag^SFLAG_SET];
-  cpu[0x4c] = CPU_INT_LEVEL>>8;
-  cpu[0x4d] = CPU_STOPPED;
-  m68k_set_context(oldcontext);
-#elif defined(EMU_F68K)
   M68K_CONTEXT *context = is_sub ? &PicoCpuFS68k : &PicoCpuFM68k;
   memcpy(cpu,context->dreg,0x40);
   pc=context->pc;
@@ -74,35 +55,12 @@ PICO_INTERNAL void PicoAreaPackCpu(unsigned char *cpu, int is_sub)
   *(unsigned int  *)(cpu+0x48)=context->asp;
   cpu[0x4c] = context->interrupts[0];
   cpu[0x4d] = (context->execinfo & FM68K_HALTED) ? 1 : 0;
-#endif
 
   *(unsigned int *)(cpu+0x40)=pc;
 }
 
 PICO_INTERNAL void PicoAreaUnpackCpu(unsigned char *cpu, int is_sub)
 {
-#if defined(EMU_C68K)
-  struct Cyclone *context = is_sub ? &PicoCpuCS68k : &PicoCpuCM68k;
-  CycloneSetSr(context, *(unsigned int *)(cpu+0x44));
-  context->osp=*(unsigned int *)(cpu+0x48);
-  memcpy(context->d,cpu,0x40);
-  context->membase=0;
-  context->pc = context->checkpc(*(unsigned int *)(cpu+0x40)); // Base pc
-  context->irq = cpu[0x4c];
-  context->state_flags = 0;
-  if (cpu[0x4d])
-    context->state_flags |= 1;
-#elif defined(EMU_M68K)
-  void *oldcontext = m68ki_cpu_p;
-  m68k_set_context(is_sub ? &PicoCpuMS68k : &PicoCpuMM68k);
-  m68k_set_reg(M68K_REG_SR, *(unsigned int *)(cpu+0x44));
-  memcpy(m68ki_cpu_p->dar,cpu,0x40);
-  m68ki_cpu_p->pc=*(unsigned int *)(cpu+0x40);
-  m68ki_cpu_p->sp[m68ki_cpu_p->s_flag^SFLAG_SET]=*(unsigned int *)(cpu+0x48);
-  CPU_INT_LEVEL = cpu[0x4c] << 8;
-  CPU_STOPPED = cpu[0x4d];
-  m68k_set_context(oldcontext);
-#elif defined(EMU_F68K)
   M68K_CONTEXT *context = is_sub ? &PicoCpuFS68k : &PicoCpuFM68k;
   memcpy(context->dreg,cpu,0x40);
   context->pc =*(unsigned int *)(cpu+0x40);
@@ -111,7 +69,6 @@ PICO_INTERNAL void PicoAreaUnpackCpu(unsigned char *cpu, int is_sub)
   context->interrupts[0] = cpu[0x4c];
   context->execinfo &= ~FM68K_HALTED;
   if (cpu[0x4d]&1) context->execinfo |= FM68K_HALTED;
-#endif
 }
 
 // Scan the contents of the virtual machine's memory for saving or loading

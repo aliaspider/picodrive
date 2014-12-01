@@ -1562,7 +1562,6 @@ static u32 PicoCheckPcS68k(u32 pc)
 #ifndef _ASM_CD_MEMORY_C
 void PicoMemResetCD(int r3)
 {
-#ifdef EMU_F68K
   // update fetchmap..
   int i;
   if (!(r3 & 4))
@@ -1577,13 +1576,9 @@ void PicoMemResetCD(int r3)
     for (i = M68K_FETCHBANK1*0x0c/0x100; (i<<(24-FAMEC_FETCHBITS)) < 0x0e0000; i++)
       PicoCpuFS68k.Fetch[i] = (unsigned int)Pico_mcd->word_ram1M[(r3&1)^1] - 0x0c0000;
   }
-#endif
 }
 #endif
 
-#ifdef EMU_M68K
-static void m68k_mem_setup_cd(void);
-#endif
 
 PICO_INTERNAL void PicoMemSetupCD(void)
 {
@@ -1591,25 +1586,6 @@ PICO_INTERNAL void PicoMemSetupCD(void)
   PicoRead16Hook = OtherRead16End;
   PicoWrite8Hook = OtherWrite8End;
 
-#ifdef EMU_C68K
-  // Setup m68k memory callbacks:
-  PicoCpuCM68k.checkpc=PicoCheckPcM68k;
-  PicoCpuCM68k.fetch8 =PicoCpuCM68k.read8 =PicoReadM68k8;
-  PicoCpuCM68k.fetch16=PicoCpuCM68k.read16=PicoReadM68k16;
-  PicoCpuCM68k.fetch32=PicoCpuCM68k.read32=PicoReadM68k32;
-  PicoCpuCM68k.write8 =PicoWriteM68k8;
-  PicoCpuCM68k.write16=PicoWriteM68k16;
-  PicoCpuCM68k.write32=PicoWriteM68k32;
-  // s68k
-  PicoCpuCS68k.checkpc=PicoCheckPcS68k;
-  PicoCpuCS68k.fetch8 =PicoCpuCS68k.read8 =PicoReadS68k8;
-  PicoCpuCS68k.fetch16=PicoCpuCS68k.read16=PicoReadS68k16;
-  PicoCpuCS68k.fetch32=PicoCpuCS68k.read32=PicoReadS68k32;
-  PicoCpuCS68k.write8 =PicoWriteS68k8;
-  PicoCpuCS68k.write16=PicoWriteS68k16;
-  PicoCpuCS68k.write32=PicoWriteS68k32;
-#endif
-#ifdef EMU_F68K
   // m68k
   PicoCpuFM68k.read_byte =PicoReadM68k8;
   PicoCpuFM68k.read_word =PicoReadM68k16;
@@ -1650,10 +1626,6 @@ PICO_INTERNAL void PicoMemSetupCD(void)
       PicoCpuFS68k.Fetch[i] = (unsigned int)Pico_mcd->word_ram2M - 0x80000;
     // PicoMemResetCD() will setup word ram for both
   }
-#endif
-#ifdef EMU_M68K
-  m68k_mem_setup_cd();
-#endif
 
   // m68k_poll_addr = m68k_poll_cnt = 0;
   s68k_poll_adclk = s68k_poll_cnt = 0;

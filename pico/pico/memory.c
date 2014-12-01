@@ -208,60 +208,8 @@ static void PicoWritePico32(u32 a,u32 d)
   elprintf(EL_UIO, "w32: %06x, %08x", a&0xffffff, d);
 }
 
-#ifdef EMU_M68K
-extern unsigned int (*pm68k_read_memory_8) (unsigned int address);
-extern unsigned int (*pm68k_read_memory_16)(unsigned int address);
-extern unsigned int (*pm68k_read_memory_32)(unsigned int address);
-extern void (*pm68k_write_memory_8) (unsigned int address, unsigned char  value);
-extern void (*pm68k_write_memory_16)(unsigned int address, unsigned short value);
-extern void (*pm68k_write_memory_32)(unsigned int address, unsigned int   value);
-extern unsigned int (*pm68k_read_memory_pcr_8) (unsigned int address);
-extern unsigned int (*pm68k_read_memory_pcr_16)(unsigned int address);
-extern unsigned int (*pm68k_read_memory_pcr_32)(unsigned int address);
-
-static unsigned int m68k_read_memory_pcrp_8(unsigned int a)
-{
-  if((a&0xe00000)==0xe00000) return *(u8 *)(Pico.ram+((a^1)&0xffff)); // Ram
-  return 0;
-}
-
-static unsigned int m68k_read_memory_pcrp_16(unsigned int a)
-{
-  if((a&0xe00000)==0xe00000) return *(u16 *)(Pico.ram+(a&0xfffe)); // Ram
-  return 0;
-}
-
-static unsigned int m68k_read_memory_pcrp_32(unsigned int a)
-{
-  if((a&0xe00000)==0xe00000) { u16 *pm=(u16 *)(Pico.ram+(a&0xfffe)); return (pm[0]<<16)|pm[1]; } // Ram
-  return 0;
-}
-#endif // EMU_M68K
-
-
 PICO_INTERNAL void PicoMemSetupPico(void)
 {
-#ifdef EMU_C68K
-  PicoCpuCM68k.checkpc=PicoCheckPc;
-  PicoCpuCM68k.fetch8 =PicoCpuCM68k.read8 =PicoReadPico8;
-  PicoCpuCM68k.fetch16=PicoCpuCM68k.read16=PicoReadPico16;
-  PicoCpuCM68k.fetch32=PicoCpuCM68k.read32=PicoReadPico32;
-  PicoCpuCM68k.write8 =PicoWritePico8;
-  PicoCpuCM68k.write16=PicoWritePico16;
-  PicoCpuCM68k.write32=PicoWritePico32;
-#endif
-#ifdef EMU_M68K
-  pm68k_read_memory_8  = PicoReadPico8;
-  pm68k_read_memory_16 = PicoReadPico16;
-  pm68k_read_memory_32 = PicoReadPico32;
-  pm68k_write_memory_8  = PicoWritePico8;
-  pm68k_write_memory_16 = PicoWritePico16;
-  pm68k_write_memory_32 = PicoWritePico32;
-  pm68k_read_memory_pcr_8  = m68k_read_memory_pcrp_8;
-  pm68k_read_memory_pcr_16 = m68k_read_memory_pcrp_16;
-  pm68k_read_memory_pcr_32 = m68k_read_memory_pcrp_32;
-#endif
-#ifdef EMU_F68K
   // use standard setup, only override handlers
   PicoMemSetup();
   PicoCpuFM68k.read_byte =PicoReadPico8;
@@ -270,6 +218,5 @@ PICO_INTERNAL void PicoMemSetupPico(void)
   PicoCpuFM68k.write_byte=PicoWritePico8;
   PicoCpuFM68k.write_word=PicoWritePico16;
   PicoCpuFM68k.write_long=PicoWritePico32;
-#endif
 }
 
