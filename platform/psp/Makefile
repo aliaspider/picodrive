@@ -1,24 +1,13 @@
 # pspdev is expected to be in path
 PSPSDK = $(shell psp-config --pspsdk-path)
 
-# settings
-#use_mz80 = 1
-for_15fw = 0
-# :!touch platform/psp/psp.c
-
-
-CFLAGS += -I../.. -I. -D_ASM_DRAW_C_AMIPS
+CFLAGS += -I../.. -I. -D_ASM_DRAW_C_AMIPS -DEMU_F68K
 CFLAGS += -Wall -Winline -G0
-#CFLAGS += -DLPRINTF_STDIO
-#CFLAGS += -pg
+
 ifeq ($(DEBUG),1)
 CFLAGS += -g -O0
 else
 CFLAGS += -O2 -ftracer -fstrength-reduce -ffast-math
-endif
-
-ifeq "$(for_15fw)" "1"
-CFLAGS += -DFW15
 endif
 
 
@@ -53,17 +42,10 @@ OBJS += pico/sound/sn76496.o pico/sound/ym2612.o
 
 # CPU cores
 
-ifeq "$(use_mz80)" "1"
-CFLAGS += -D_USE_MZ80
-OBJS += cpu/mz80/mz80.o
-else
-CFLAGS += -D_USE_CZ80
 OBJS += cpu/cz80/cz80.o
-endif
 
 OBJS_BASE := $(OBJS)
 
-CFLAGS += -DEMU_F68K
 OBJS += cpu/fame/famec.o
 
 
@@ -73,18 +55,13 @@ vpath %.s = ../..
 LIBS += -lm -lpspgu -lpsppower -lpspaudio -lpsprtc
 LDFLAGS +=
 
-CFLAGS += -ISDK/
-LDFLAGS += -LSDK/
-
 # target
 TARGET = PicoDrive
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = PicoDrive
 PSP_EBOOT_ICON = data/icon.png
 
-ifneq "$(for_15fw)" "1"
 BUILD_PRX = 1
-endif
 
 include $(PSPSDK)/lib/build.mak
 

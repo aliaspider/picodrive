@@ -4,10 +4,6 @@ CC = psp-gcc
 AS = psp-as
 AR = psp-ar
 
-
-#use_musashi = 1
-#use_mz80 = 1
-
 CFLAGS += -I../.. -I. -DNO_SYNC -D_ASM_DRAW_C_AMIPS
 CFLAGS += -Wall -Winline -G0
 
@@ -49,22 +45,11 @@ CFLAGS += -D__LIBRETRO__ -DNO_MMAP
 OBJS_BASE := $(OBJS)
 
 # CPU cores
-ifeq "$(use_musashi)" "1"
-CFLAGS += -DEMU_M68K
-OBJS += cpu/musashi/m68kops.o cpu/musashi/m68kcpu.o
-else
 CFLAGS += -DEMU_F68K
 OBJS += cpu/fame/famec.o
-endif
 
 # z80
-ifeq "$(use_mz80)" "1"
-CFLAGS += -D_USE_MZ80
-OBJS += cpu/mz80/mz80.o
-else
-CFLAGS += -D_USE_CZ80
 OBJS += cpu/cz80/cz80.o
-endif
 
 
 INCDIRS  = -I. -Iplatform/psp

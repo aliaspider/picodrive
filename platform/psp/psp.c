@@ -23,8 +23,6 @@
 
 extern int pico_main(const char* fileName);
 
-#ifndef FW15
-
 PSP_MODULE_INFO("PicoDrive", 0, 1, 51);
 PSP_HEAP_SIZE_MAX();
 
@@ -37,29 +35,6 @@ int main(int argc, char** argv)
 
 }  /* just a wrapper */
 
-#else
-
-PSP_MODULE_INFO("PicoDrive", 0x1000, 1, 51);
-PSP_MAIN_THREAD_ATTR(0);
-
-int main()
-{
-   SceUID thid;
-
-   /* this is the thing we need the kernel mode for */
-   pspSdkInstallNoDeviceCheckPatch();
-
-   thid = sceKernelCreateThread("pico_main", (SceKernelThreadEntry) pico_main, 32,
-                                0x2000, PSP_THREAD_ATTR_USER, NULL);
-   if (thid >= 0)
-      sceKernelStartThread(thid, 0, 0);
-
-   sceKernelExitDeleteThread(0);
-
-   return 0;
-}
-
-#endif
 
 int psp_unhandled_suspend = 0;
 

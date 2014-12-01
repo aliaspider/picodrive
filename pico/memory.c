@@ -930,11 +930,7 @@ bnkend:
   return ret;
 }
 
-#ifndef _USE_CZ80
-PICO_INTERNAL_ASM void z80_write(unsigned char data, unsigned short a)
-#else
 PICO_INTERNAL_ASM void z80_write(unsigned int a, unsigned char data)
-#endif
 {
   if ((a>>13)==2) // 0x4000-0x5fff (Charles MacDonald)
   {
@@ -974,17 +970,3 @@ PICO_INTERNAL_ASM void z80_write(unsigned int a, unsigned char data)
 
   elprintf(EL_ANOMALY, "z80 invalid w8 [%06x] %02x", a, data);
 }
-
-#ifndef _USE_CZ80
-PICO_INTERNAL unsigned short z80_read16(unsigned short a)
-{
-  return (u16) ( (u16)z80_read(a) | ((u16)z80_read((u16)(a+1))<<8) );
-}
-
-PICO_INTERNAL void z80_write16(unsigned short data, unsigned short a)
-{
-  z80_write((unsigned char) data,a);
-  z80_write((unsigned char)(data>>8),(u16)(a+1));
-}
-#endif
-

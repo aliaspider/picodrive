@@ -151,41 +151,13 @@ extern int SekCycleAimS68k;
 
 // ----------------------- Z80 CPU -----------------------
 
-#if defined(_USE_MZ80)
-#include "../cpu/mz80/mz80.h"
-
-#define z80_run(cycles)    mz80_run(cycles, 1)
-#define z80_run_nr(cycles) mz80_run(cycles, 0)
-#define z80_int()          mz80int(0)
-
-#define z80_cyclesLeft     (sdwCyclesRemaining)
-#elif defined(_USE_DRZ80)
-#include "../cpu/DrZ80/drz80.h"
-
-extern struct DrZ80 drZ80;
-
-#define z80_run(cycles)    ((cycles) - DrZ80Run(&drZ80, cycles))
-#define z80_run_nr(cycles) DrZ80Run(&drZ80, cycles)
-#define z80_int()          drZ80.Z80_IRQ = 1
-
-#define z80_cyclesLeft     drZ80.cycles
-
-#elif defined(_USE_CZ80)
 #include "../cpu/cz80/cz80.h"
 
 #define z80_run(cycles)    Cz80_Exec(&CZ80, cycles)
 #define z80_run_nr(cycles) Cz80_Exec(&CZ80, cycles)
 #define z80_int()          Cz80_Set_IRQ(&CZ80, 0, HOLD_LINE)
-
 #define z80_cyclesLeft     (CZ80.ICount - CZ80.ExtraCycles)
 
-#else
-
-#define z80_run(cycles)    (cycles)
-#define z80_run_nr(cycles)
-#define z80_int()
-
-#endif
 
 extern int z80stopCycle;         /* in 68k cycles */
 extern int z80_cycle_cnt;        /* 'done' z80 cycles before z80_run() */
@@ -394,13 +366,7 @@ PICO_INTERNAL_ASM void PicoMemReset(void);
 PICO_INTERNAL void PicoMemResetHooks(void);
 PICO_INTERNAL int PadRead(int i);
 PICO_INTERNAL unsigned char z80_read(unsigned short a);
-#ifndef _USE_CZ80
-PICO_INTERNAL_ASM void z80_write(unsigned char data, unsigned short a);
-PICO_INTERNAL void z80_write16(unsigned short data, unsigned short a);
-PICO_INTERNAL unsigned short z80_read16(unsigned short a);
-#else
 PICO_INTERNAL_ASM void z80_write(unsigned int a, unsigned char data);
-#endif
 PICO_INTERNAL int ym2612_write_local(unsigned int a, unsigned int d, int is_from_z80);
 extern unsigned int (*PicoRead16Hook)(unsigned int a, int realsize);
 extern void (*PicoWrite8Hook) (unsigned int a,unsigned int d,int realsize);
@@ -519,7 +485,6 @@ PICO_INTERNAL void z80_init(void);
 PICO_INTERNAL void z80_pack(unsigned char *data);
 PICO_INTERNAL void z80_unpack(unsigned char *data);
 PICO_INTERNAL void z80_reset(void);
-PICO_INTERNAL void z80_exit(void);
 extern int PsndDacLine;
 
 // emulation event logging

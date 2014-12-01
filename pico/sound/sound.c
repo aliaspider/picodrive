@@ -14,356 +14,381 @@
 #include "../cd/pcm.h"
 #include "mix.h"
 
-void (*PsndMix_32_to_16l)(short *dest, int *src, int count) = mix_32_to_16l_stereo;
+void (*PsndMix_32_to_16l)(short* dest, int* src,
+                          int count) = mix_32_to_16l_stereo;
 
 // master int buffer to mix to
-static int PsndBuffer[2*44100/50];
+static int PsndBuffer[2 * 44100 / 50];
 
 // dac
-static unsigned short dac_info[312+4]; // pppppppp ppppllll, p - pos in buff, l - length to write for this sample
+static unsigned short dac_info[312 +
+                               4]; // pppppppp ppppllll, p - pos in buff, l - length to write for this sample
 
 // cdda output buffer
-short cdda_out_buffer[2*1152];
+short cdda_out_buffer[2 * 1152];
 
 // for Pico
-int PsndRate=0;
-int PsndLen=0; // number of mono samples, multiply by 2 for stereo
-int PsndLen_exc_add=0; // this is for non-integer sample counts per line, eg. 22050/60
-int PsndLen_exc_cnt=0;
-int PsndDacLine=0;
-short *PsndOut=NULL; // PCM data buffer
+int PsndRate = 0;
+int PsndLen = 0; // number of mono samples, multiply by 2 for stereo
+int PsndLen_exc_add =
+   0; // this is for non-integer sample counts per line, eg. 22050/60
+int PsndLen_exc_cnt = 0;
+int PsndDacLine = 0;
+short* PsndOut = NULL; // PCM data buffer
 
 // timers
 int timer_a_next_oflow, timer_a_step; // in z80 cycles
 int timer_b_next_oflow, timer_b_step;
 
 // sn76496
-extern int *sn76496_regs;
+extern int* sn76496_regs;
 
 
 static void dac_recalculate(void)
 {
-  int i, dac_cnt, pos, len, lines = Pico.m.pal ? 312 : 262, mid = Pico.m.pal ? 68 : 93;
+   int i, dac_cnt, pos, len, lines = Pico.m.pal ? 312 : 262,
+                             mid = Pico.m.pal ? 68 : 93;
 
-  if (PsndLen <= lines)
-  {
-    // shrinking algo
-    dac_cnt = -PsndLen;
-    len=1; pos=0;
-    dac_info[225] = 1;
+   if (PsndLen <= lines)
+   {
+      // shrinking algo
+      dac_cnt = -PsndLen;
+      len = 1;
+      pos = 0;
+      dac_info[225] = 1;
 
-    for(i=226; i != 225; i++)
-    {
-      if (i >= lines) i = 0;
-      len = 0;
-      if(dac_cnt < 0) {
-        len=1;
-        pos++;
-        dac_cnt += lines;
+      for (i = 226; i != 225; i++)
+      {
+         if (i >= lines) i = 0;
+         len = 0;
+         if (dac_cnt < 0)
+         {
+            len = 1;
+            pos++;
+            dac_cnt += lines;
+         }
+         dac_cnt -= PsndLen;
+         dac_info[i] = (pos << 4) | len;
       }
-      dac_cnt -= PsndLen;
-      dac_info[i] = (pos<<4)|len;
-    }
-  }
-  else
-  {
-    // stretching
-    dac_cnt = PsndLen;
-    pos=0;
-    for(i = 225; i != 224; i++)
-    {
-      if (i >= lines) i = 0;
-      len=0;
-      while(dac_cnt >= 0) {
-        dac_cnt -= lines;
-        len++;
+   }
+   else
+   {
+      // stretching
+      dac_cnt = PsndLen;
+      pos = 0;
+      for (i = 225; i != 224; i++)
+      {
+         if (i >= lines) i = 0;
+         len = 0;
+         while (dac_cnt >= 0)
+         {
+            dac_cnt -= lines;
+            len++;
+         }
+         if (i == mid) // midpoint
+            while (pos + len < PsndLen / 2)
+            {
+               dac_cnt -= lines;
+               len++;
+            }
+         dac_cnt += PsndLen;
+         dac_info[i] = (pos << 4) | len;
+         pos += len;
       }
-      if (i == mid) // midpoint
-        while(pos+len < PsndLen/2) {
-          dac_cnt -= lines;
-          len++;
-        }
-      dac_cnt += PsndLen;
-      dac_info[i] = (pos<<4)|len;
-      pos+=len;
-    }
-    // last sample
-    for(len = 0, i = pos; i < PsndLen; i++) len++;
-    if (PsndLen_exc_add) len++;
-    dac_info[224] = (pos<<4)|len;
-  }
-  mid = (dac_info[lines-1] & 0xfff0) + ((dac_info[lines-1] & 0xf) << 4);
-  for (i = lines; i < sizeof(dac_info) / sizeof(dac_info[0]); i++)
-    dac_info[i] = mid;
-  //for(i=len=0; i < lines; i++) {
-  //  printf("%03i : %03i : %i\n", i, dac_info[i]>>4, dac_info[i]&0xf);
-  //  len+=dac_info[i]&0xf;
-  //}
-  //printf("rate is %i, len %f\n", PsndRate, (double)PsndRate/(Pico.m.pal ? 50.0 : 60.0));
-  //printf("len total: %i, last pos: %i\n", len, pos);
-  //exit(8);
+      // last sample
+      for (len = 0, i = pos; i < PsndLen; i++) len++;
+      if (PsndLen_exc_add) len++;
+      dac_info[224] = (pos << 4) | len;
+   }
+   mid = (dac_info[lines - 1] & 0xfff0) + ((dac_info[lines - 1] & 0xf) << 4);
+   for (i = lines; i < sizeof(dac_info) / sizeof(dac_info[0]); i++)
+      dac_info[i] = mid;
+   //for(i=len=0; i < lines; i++) {
+   //  printf("%03i : %03i : %i\n", i, dac_info[i]>>4, dac_info[i]&0xf);
+   //  len+=dac_info[i]&0xf;
+   //}
+   //printf("rate is %i, len %f\n", PsndRate, (double)PsndRate/(Pico.m.pal ? 50.0 : 60.0));
+   //printf("len total: %i, last pos: %i\n", len, pos);
+   //exit(8);
 }
 
 
 PICO_INTERNAL void PsndReset(void)
 {
-  void *ym2612_regs;
+   void* ym2612_regs;
 
-  // also clear the internal registers+addr line
-  ym2612_regs = YM2612GetRegs();
-  memset(ym2612_regs, 0, 0x200+4);
-  timers_reset();
+   // also clear the internal registers+addr line
+   ym2612_regs = YM2612GetRegs();
+   memset(ym2612_regs, 0, 0x200 + 4);
+   timers_reset();
 
-  PsndRerate(0);
+   PsndRerate(0);
 }
 
 
 // to be called after changing sound rate or chips
 void PsndRerate(int preserve_state)
 {
-  void *state = NULL;
-  int target_fps = Pico.m.pal ? 50 : 60;
+   void* state = NULL;
+   int target_fps = Pico.m.pal ? 50 : 60;
 
-  // not all rates are supported in MCD mode due to mp3 decoder limitations
-  if (PicoAHW & PAHW_MCD) {
-    if (PsndRate != 11025 && PsndRate != 22050 && PsndRate != 44100) PsndRate = 22050;
-    PicoOpt |= POPT_EN_STEREO; // force stereo
-  }
+   // not all rates are supported in MCD mode due to mp3 decoder limitations
+   if (PicoAHW & PAHW_MCD)
+   {
+      if (PsndRate != 11025 && PsndRate != 22050
+            && PsndRate != 44100) PsndRate = 22050;
+      PicoOpt |= POPT_EN_STEREO; // force stereo
+   }
 
-  if (preserve_state) {
-    state = malloc(0x200);
-    if (state == NULL) return;
-    memcpy(state, YM2612GetRegs(), 0x200);
-  }
-  YM2612Init(Pico.m.pal ? OSC_PAL/7 : OSC_NTSC/7, PsndRate);
-  if (preserve_state) {
-    // feed it back it's own registers, just like after loading state
-    memcpy(YM2612GetRegs(), state, 0x200);
-    ym2612_unpack_state();
-    if ((PicoAHW & PAHW_MCD) && !(Pico_mcd->s68k_regs[0x36] & 1) && (Pico_mcd->scd.Status_CDC & 1))
-      cdda_start_play();
-  }
+   if (preserve_state)
+   {
+      state = malloc(0x200);
+      if (state == NULL) return;
+      memcpy(state, YM2612GetRegs(), 0x200);
+   }
+   YM2612Init(Pico.m.pal ? OSC_PAL / 7 : OSC_NTSC / 7, PsndRate);
+   if (preserve_state)
+   {
+      // feed it back it's own registers, just like after loading state
+      memcpy(YM2612GetRegs(), state, 0x200);
+      ym2612_unpack_state();
+      if ((PicoAHW & PAHW_MCD) && !(Pico_mcd->s68k_regs[0x36] & 1)
+            && (Pico_mcd->scd.Status_CDC & 1))
+         cdda_start_play();
+   }
 
-  if (preserve_state) memcpy(state, sn76496_regs, 28*4); // remember old state
-  SN76496_init(Pico.m.pal ? OSC_PAL/15 : OSC_NTSC/15, PsndRate);
-  if (preserve_state) memcpy(sn76496_regs, state, 28*4); // restore old state
+   if (preserve_state) memcpy(state, sn76496_regs, 28 * 4); // remember old state
+   SN76496_init(Pico.m.pal ? OSC_PAL / 15 : OSC_NTSC / 15, PsndRate);
+   if (preserve_state) memcpy(sn76496_regs, state, 28 * 4); // restore old state
 
-  if (state)
-    free(state);
+   if (state)
+      free(state);
 
-  // calculate PsndLen
-  PsndLen=PsndRate / target_fps;
-  PsndLen_exc_add=((PsndRate - PsndLen*target_fps)<<16) / target_fps;
-  PsndLen_exc_cnt=0;
+   // calculate PsndLen
+   PsndLen = PsndRate / target_fps;
+   PsndLen_exc_add = ((PsndRate - PsndLen * target_fps) << 16) / target_fps;
+   PsndLen_exc_cnt = 0;
 
-  // recalculate dac info
-  dac_recalculate();
+   // recalculate dac info
+   dac_recalculate();
 
-  if (PicoAHW & PAHW_MCD)
-    pcm_set_rate(PsndRate);
+   if (PicoAHW & PAHW_MCD)
+      pcm_set_rate(PsndRate);
 
-  // clear all buffers
-  memset32(PsndBuffer, 0, sizeof(PsndBuffer)/4);
-  memset(cdda_out_buffer, 0, sizeof(cdda_out_buffer));
-  if (PsndOut)
-    PsndClear();
+   // clear all buffers
+   memset32(PsndBuffer, 0, sizeof(PsndBuffer) / 4);
+   memset(cdda_out_buffer, 0, sizeof(cdda_out_buffer));
+   if (PsndOut)
+      PsndClear();
 
-  // set mixer
-  PsndMix_32_to_16l = (PicoOpt & POPT_EN_STEREO) ? mix_32_to_16l_stereo : mix_32_to_16_mono;
+   // set mixer
+   PsndMix_32_to_16l = (PicoOpt & POPT_EN_STEREO) ? mix_32_to_16l_stereo :
+                       mix_32_to_16_mono;
 
-  if (PicoAHW & PAHW_PICO)
-    PicoReratePico();
+   if (PicoAHW & PAHW_PICO)
+      PicoReratePico();
 }
 
 
 PICO_INTERNAL void PsndDoDAC(int line_to)
 {
-  int pos, pos1, len;
-  int dout = ym2612.dacout;
-  int line_from = PsndDacLine;
+   int pos, pos1, len;
+   int dout = ym2612.dacout;
+   int line_from = PsndDacLine;
 
-  PsndDacLine = line_to + 1;
+   PsndDacLine = line_to + 1;
 
-  pos =dac_info[line_from]>>4;
-  pos1=dac_info[line_to];
-  len = ((pos1>>4)-pos) + (pos1&0xf);
-  if (!len) return;
+   pos = dac_info[line_from] >> 4;
+   pos1 = dac_info[line_to];
+   len = ((pos1 >> 4) - pos) + (pos1 & 0xf);
+   if (!len) return;
 
-  if (PicoOpt & POPT_EN_STEREO) {
-    short *d = PsndOut + pos*2;
-    for (; len > 0; len--, d+=2) *d = dout;
-  } else {
-    short *d = PsndOut + pos;
-    for (; len > 0; len--, d++)  *d = dout;
-  }
-
-#if 0
-  if (do_pcm) {
-    int *d = PsndBuffer;
-    d += (PicoOpt&8) ? pos*2 : pos;
-    pcm_update(d, len, 1);
-  }
-#endif
+   if (PicoOpt & POPT_EN_STEREO)
+   {
+      short* d = PsndOut + pos * 2;
+      for (; len > 0; len--, d += 2) * d = dout;
+   }
+   else
+   {
+      short* d = PsndOut + pos;
+      for (; len > 0; len--, d++)  *d = dout;
+   }
 }
 
 // cdda
-static pm_file *cdda_stream = NULL;
+static pm_file* cdda_stream = NULL;
 
-static void cdda_raw_update(int *buffer, int length)
+static void cdda_raw_update(int* buffer, int length)
 {
-  int ret, cdda_bytes;
-  if (cdda_stream == NULL) return;
+   int ret, cdda_bytes;
+   if (cdda_stream == NULL) return;
 
-  cdda_bytes = length*4;
-  if (PsndRate <= 22050) cdda_bytes *= 2;
-  if (PsndRate <  22050) cdda_bytes *= 2;
+   cdda_bytes = length * 4;
+   if (PsndRate <= 22050) cdda_bytes *= 2;
+   if (PsndRate <  22050) cdda_bytes *= 2;
 
-  ret = pm_read(cdda_out_buffer, cdda_bytes, cdda_stream);
-  if (ret < cdda_bytes) {
-    memset((char *)cdda_out_buffer + ret, 0, cdda_bytes - ret);
-    cdda_stream = NULL;
-    return;
-  }
+   ret = pm_read(cdda_out_buffer, cdda_bytes, cdda_stream);
+   if (ret < cdda_bytes)
+   {
+      memset((char*)cdda_out_buffer + ret, 0, cdda_bytes - ret);
+      cdda_stream = NULL;
+      return;
+   }
 
-  // now mix
-  switch (PsndRate) {
-    case 44100: mix_16h_to_32(buffer, cdda_out_buffer, length*2); break;
-    case 22050: mix_16h_to_32_s1(buffer, cdda_out_buffer, length*2); break;
-    case 11025: mix_16h_to_32_s2(buffer, cdda_out_buffer, length*2); break;
-  }
+   // now mix
+   switch (PsndRate)
+   {
+   case 44100:
+      mix_16h_to_32(buffer, cdda_out_buffer, length * 2);
+      break;
+   case 22050:
+      mix_16h_to_32_s1(buffer, cdda_out_buffer, length * 2);
+      break;
+   case 11025:
+      mix_16h_to_32_s2(buffer, cdda_out_buffer, length * 2);
+      break;
+   }
 }
 
 PICO_INTERNAL void cdda_start_play(void)
 {
-  int lba_offset, index, i;
+   int lba_offset, index, i;
 
-  elprintf(EL_STATUS, "cdda play track #%i", Pico_mcd->scd.Cur_Track);
+   elprintf(EL_STATUS, "cdda play track #%i", Pico_mcd->scd.Cur_Track);
 
-  index = Pico_mcd->scd.Cur_Track - 1;
+   index = Pico_mcd->scd.Cur_Track - 1;
 
-  lba_offset = Pico_mcd->scd.Cur_LBA - Track_to_LBA(index + 1);
-  if (lba_offset < 0) lba_offset = 0;
-  lba_offset += Pico_mcd->TOC.Tracks[index].Offset;
+   lba_offset = Pico_mcd->scd.Cur_LBA - Track_to_LBA(index + 1);
+   if (lba_offset < 0) lba_offset = 0;
+   lba_offset += Pico_mcd->TOC.Tracks[index].Offset;
 
-  // find the actual file for this track
-  for (i = index; i >= 0; i--)
-    if (Pico_mcd->TOC.Tracks[i].F != NULL) break;
+   // find the actual file for this track
+   for (i = index; i >= 0; i--)
+      if (Pico_mcd->TOC.Tracks[i].F != NULL) break;
 
-  if (Pico_mcd->TOC.Tracks[i].F == NULL) {
-    elprintf(EL_STATUS|EL_ANOMALY, "no track?!");
-    return;
-  }
+   if (Pico_mcd->TOC.Tracks[i].F == NULL)
+   {
+      elprintf(EL_STATUS | EL_ANOMALY, "no track?!");
+      return;
+   }
 
-  cdda_stream = Pico_mcd->TOC.Tracks[i].F;
-  PicoCDBufferFlush(); // buffering relies on fp not being touched
-  pm_seek(cdda_stream, lba_offset * 2352, SEEK_SET);
+   cdda_stream = Pico_mcd->TOC.Tracks[i].F;
+   PicoCDBufferFlush(); // buffering relies on fp not being touched
+   pm_seek(cdda_stream, lba_offset * 2352, SEEK_SET);
 }
 
 
 PICO_INTERNAL void PsndClear(void)
 {
-  int len = PsndLen;
-  if (PsndLen_exc_add) len++;
-  if (PicoOpt & POPT_EN_STEREO)
-    memset32((int *) PsndOut, 0, len); // assume PsndOut to be aligned
-  else {
-    short *out = PsndOut;
-    if ((int)out & 2) { *out++ = 0; len--; }
-    memset32((int *) out, 0, len/2);
-    if (len & 1) out[len-1] = 0;
-  }
+   int len = PsndLen;
+   if (PsndLen_exc_add) len++;
+   if (PicoOpt & POPT_EN_STEREO)
+      memset32((int*) PsndOut, 0, len);  // assume PsndOut to be aligned
+   else
+   {
+      short* out = PsndOut;
+      if ((int)out & 2)
+      {
+         *out++ = 0;
+         len--;
+      }
+      memset32((int*) out, 0, len / 2);
+      if (len & 1) out[len - 1] = 0;
+   }
 }
 
 
 static int PsndRender(int offset, int length)
 {
-  int *buf32 = PsndBuffer+offset;
-  int stereo = (PicoOpt & 8) >> 3;
-  // emulating CD && PCM option enabled && PCM chip on && have enabled channels
-  int do_pcm = (PicoAHW & PAHW_MCD) && (PicoOpt&POPT_EN_MCD_PCM) &&
-		(Pico_mcd->pcm.control & 0x80) && Pico_mcd->pcm.enabled;
-  offset <<= stereo;
+   int* buf32 = PsndBuffer + offset;
+   int stereo = (PicoOpt & 8) >> 3;
+   // emulating CD && PCM option enabled && PCM chip on && have enabled channels
+   int do_pcm = (PicoAHW & PAHW_MCD) && (PicoOpt & POPT_EN_MCD_PCM) &&
+                (Pico_mcd->pcm.control & 0x80) && Pico_mcd->pcm.enabled;
+   offset <<= stereo;
 
 #if !SIMPLE_WRITE_SOUND
-  if (offset == 0) { // should happen once per frame
-    // compensate for float part of PsndLen
-    PsndLen_exc_cnt += PsndLen_exc_add;
-    if (PsndLen_exc_cnt >= 0x10000) {
-      PsndLen_exc_cnt -= 0x10000;
-      length++;
-    }
-  }
+   if (offset == 0)   // should happen once per frame
+   {
+      // compensate for float part of PsndLen
+      PsndLen_exc_cnt += PsndLen_exc_add;
+      if (PsndLen_exc_cnt >= 0x10000)
+      {
+         PsndLen_exc_cnt -= 0x10000;
+         length++;
+      }
+   }
 #endif
 
-  // PSG
-  if (PicoOpt & POPT_EN_PSG)
-    SN76496Update(PsndOut+offset, length, stereo);
+   // PSG
+   if (PicoOpt & POPT_EN_PSG)
+      SN76496Update(PsndOut + offset, length, stereo);
 
-  if (PicoAHW & PAHW_PICO) {
-    PicoPicoPCMUpdate(PsndOut+offset, length, stereo);
-    return length;
-  }
+   if (PicoAHW & PAHW_PICO)
+   {
+      PicoPicoPCMUpdate(PsndOut + offset, length, stereo);
+      return length;
+   }
 
-  // Add in the stereo FM buffer
-  if (PicoOpt & POPT_EN_FM) {
-    YM2612UpdateOne(buf32, length, stereo, 1);
-  } else
-    memset32(buf32, 0, length<<stereo);
+   // Add in the stereo FM buffer
+   if (PicoOpt & POPT_EN_FM)
+      YM2612UpdateOne(buf32, length, stereo, 1);
+   else
+      memset32(buf32, 0, length << stereo);
 
-//printf("active_chs: %02x\n", buf32_updated);
+   //printf("active_chs: %02x\n", buf32_updated);
 
-  // CD: PCM sound
-  if (do_pcm) {
-    pcm_update(buf32, length, stereo);
-    //buf32_updated = 1;
-  }
+   // CD: PCM sound
+   if (do_pcm)
+   {
+      pcm_update(buf32, length, stereo);
+      //buf32_updated = 1;
+   }
 
-  // CD: CDDA audio
-  // CD mode, cdda enabled, not data track, CDC is reading
-  if ((PicoAHW & PAHW_MCD) && (PicoOpt & POPT_EN_MCD_CDDA) &&
-		!(Pico_mcd->s68k_regs[0x36] & 1) && (Pico_mcd->scd.Status_CDC & 1))
-  {
-    // note: only 44, 22 and 11 kHz supported, with forced stereo
-    int index = Pico_mcd->scd.Cur_Track - 1;
-
-//    if (Pico_mcd->TOC.Tracks[index].ftype == TYPE_MP3)
-//      mp3_update(buf32, length, stereo);
-//    else
+   // CD: CDDA audio
+   // CD mode, cdda enabled, not data track, CDC is reading
+   if ((PicoAHW & PAHW_MCD) && (PicoOpt & POPT_EN_MCD_CDDA) &&
+         !(Pico_mcd->s68k_regs[0x36] & 1) && (Pico_mcd->scd.Status_CDC & 1))
+   {
+      // note: only 44, 22 and 11 kHz supported, with forced stereo
+      int index = Pico_mcd->scd.Cur_Track - 1;
       cdda_raw_update(buf32, length);
-  }
+   }
 
-  // convert + limit to normal 16bit output
-  PsndMix_32_to_16l(PsndOut+offset, buf32, length);
+   // convert + limit to normal 16bit output
+   PsndMix_32_to_16l(PsndOut + offset, buf32, length);
 
-  return length;
+   return length;
 }
 
 // to be called on 224 or line_sample scanlines only
 PICO_INTERNAL void PsndGetSamples(int y)
 {
 #if SIMPLE_WRITE_SOUND
-  if (y != 224) return;
-  PsndRender(0, PsndLen);
-  if (PicoWriteSound) PicoWriteSound(PsndLen);
-  PsndClear();
+   if (y != 224) return;
+   PsndRender(0, PsndLen);
+   if (PicoWriteSound) PicoWriteSound(PsndLen);
+   PsndClear();
 #else
-  static int curr_pos = 0;
+   static int curr_pos = 0;
 
-  if (y == 224)
-  {
-    if (emustatus & 2)
-         curr_pos += PsndRender(curr_pos, PsndLen-PsndLen/2);
-    else curr_pos  = PsndRender(0, PsndLen);
-    if (emustatus&1) emustatus|=2; else emustatus&=~2;
-    if (PicoWriteSound) PicoWriteSound(curr_pos);
-    // clear sound buffer
-    PsndClear();
-  }
-  else if (emustatus & 3) {
-    emustatus|= 2;
-    emustatus&=~1;
-    curr_pos = PsndRender(0, PsndLen/2);
-  }
+   if (y == 224)
+   {
+      if (emustatus & 2)
+         curr_pos += PsndRender(curr_pos, PsndLen - PsndLen / 2);
+      else curr_pos  = PsndRender(0, PsndLen);
+      if (emustatus & 1) emustatus |= 2;
+      else emustatus &= ~2;
+      if (PicoWriteSound) PicoWriteSound(curr_pos);
+      // clear sound buffer
+      PsndClear();
+   }
+   else if (emustatus & 3)
+   {
+      emustatus |= 2;
+      emustatus &= ~1;
+      curr_pos = PsndRender(0, PsndLen / 2);
+   }
 #endif
 }
 
@@ -371,267 +396,57 @@ PICO_INTERNAL void PsndGetSamples(int y)
 // -----------------------------------------------------------------
 //                            z80 stuff
 
-#ifdef _USE_MZ80
-
-// memhandlers for mz80 core
-unsigned char mz80_read(UINT32 a,  struct MemoryReadByte *w)  { return z80_read(a); }
-void mz80_write(UINT32 a, UINT8 d, struct MemoryWriteByte *w) { z80_write(d, a); }
-
-// structures for mz80 core
-static struct MemoryReadByte mz80_mem_read[]=
-{
-  {0x0000,0xffff,mz80_read},
-  {(UINT32) -1,(UINT32) -1,NULL}
-};
-static struct MemoryWriteByte mz80_mem_write[]=
-{
-  {0x0000,0xffff,mz80_write},
-  {(UINT32) -1,(UINT32) -1,NULL}
-};
-static struct z80PortRead mz80_io_read[] ={
-  {(UINT16) -1,(UINT16) -1,NULL}
-};
-static struct z80PortWrite mz80_io_write[]={
-  {(UINT16) -1,(UINT16) -1,NULL}
-};
-
-int mz80_run(int cycles, UINT32 dwClear)
-{
-  int ticks_pre = mz80GetElapsedTicks(dwClear);
-  mz80exec(cycles);
-  return mz80GetElapsedTicks(0) - ticks_pre;
-}
-
-#endif
-
-#ifdef _USE_DRZ80
-
-struct DrZ80 drZ80;
-
-static unsigned int DrZ80_rebasePC(unsigned short a)
-{
-  drZ80.Z80PC_BASE = (unsigned int) Pico.zram;
-  return drZ80.Z80PC_BASE + a;
-}
-
-static unsigned int DrZ80_rebaseSP(unsigned short a)
-{
-  drZ80.Z80SP_BASE = (unsigned int) Pico.zram;
-  return drZ80.Z80SP_BASE + a;
-}
-#endif
-
-#if defined(_USE_DRZ80) || defined(_USE_CZ80)
 static unsigned char z80_in(unsigned short p)
 {
-  elprintf(EL_ANOMALY, "Z80 port %04x read", p);
-  return 0xff;
+   elprintf(EL_ANOMALY, "Z80 port %04x read", p);
+   return 0xff;
 }
 
-static void z80_out(unsigned short p,unsigned char d)
+static void z80_out(unsigned short p, unsigned char d)
 {
-  elprintf(EL_ANOMALY, "Z80 port %04x write %02x", p, d);
+   elprintf(EL_ANOMALY, "Z80 port %04x write %02x", p, d);
 }
-#endif
-
 
 // z80 functionality wrappers
 PICO_INTERNAL void z80_init(void)
 {
-#ifdef _USE_MZ80
-  struct mz80context z80;
-
-  // z80
-  mz80init();
-  // Modify the default context
-  mz80GetContext(&z80);
-
-  // point mz80 stuff
-  z80.z80Base=Pico.zram;
-  z80.z80MemRead=mz80_mem_read;
-  z80.z80MemWrite=mz80_mem_write;
-  z80.z80IoRead=mz80_io_read;
-  z80.z80IoWrite=mz80_io_write;
-
-  mz80SetContext(&z80);
-#endif
-#ifdef _USE_DRZ80
-  memset(&drZ80, 0, sizeof(struct DrZ80));
-  drZ80.z80_rebasePC=DrZ80_rebasePC;
-  drZ80.z80_rebaseSP=DrZ80_rebaseSP;
-  drZ80.z80_read8   =z80_read;
-  drZ80.z80_read16  =NULL;
-  drZ80.z80_write8  =z80_write;
-  drZ80.z80_write16 =NULL;
-  drZ80.z80_in      =z80_in;
-  drZ80.z80_out     =z80_out;
-  drZ80.z80_irq_callback=NULL;
-#endif
-#ifdef _USE_CZ80
-  memset(&CZ80, 0, sizeof(CZ80));
-  Cz80_Init(&CZ80);
-  Cz80_Set_Fetch(&CZ80, 0x0000, 0x1fff, (UINT32)Pico.zram); // main RAM
-  Cz80_Set_Fetch(&CZ80, 0x2000, 0x3fff, (UINT32)Pico.zram); // mirror
-  Cz80_Set_ReadB(&CZ80, (UINT8 (*)(UINT32 address))z80_read); // unused (hacked in)
-  Cz80_Set_WriteB(&CZ80, z80_write);
-  Cz80_Set_INPort(&CZ80, z80_in);
-  Cz80_Set_OUTPort(&CZ80, z80_out);
-#endif
+   memset(&CZ80, 0, sizeof(CZ80));
+   Cz80_Init(&CZ80);
+   Cz80_Set_Fetch(&CZ80, 0x0000, 0x1fff, (UINT32)Pico.zram); // main RAM
+   Cz80_Set_Fetch(&CZ80, 0x2000, 0x3fff, (UINT32)Pico.zram); // mirror
+   Cz80_Set_ReadB(&CZ80, (UINT8(*)(UINT32 address))
+                  z80_read);  // unused (hacked in)
+   Cz80_Set_WriteB(&CZ80, z80_write);
+   Cz80_Set_INPort(&CZ80, z80_in);
+   Cz80_Set_OUTPort(&CZ80, z80_out);
 }
 
 PICO_INTERNAL void z80_reset(void)
 {
-#ifdef _USE_MZ80
-  mz80reset();
-#endif
-#ifdef _USE_DRZ80
-  memset(&drZ80, 0, 0x54);
-  drZ80.Z80F  = (1<<2);  // set ZFlag
-  drZ80.Z80F2 = (1<<2);  // set ZFlag
-  drZ80.Z80IX = 0xFFFF << 16;
-  drZ80.Z80IY = 0xFFFF << 16;
-  drZ80.Z80IM = 0; // 1?
-  drZ80.z80irqvector = 0xff0000; // RST 38h
-  drZ80.Z80PC = drZ80.z80_rebasePC(0);
-  drZ80.Z80SP = drZ80.z80_rebaseSP(0x2000); // 0xf000 ?
-#endif
-#ifdef _USE_CZ80
-  Cz80_Reset(&CZ80);
-  Cz80_Set_Reg(&CZ80, CZ80_IX, 0xffff);
-  Cz80_Set_Reg(&CZ80, CZ80_IY, 0xffff);
-  Cz80_Set_Reg(&CZ80, CZ80_SP, 0x2000);
-#endif
-  Pico.m.z80_fakeval = 0; // for faking when Z80 is disabled
+   Cz80_Reset(&CZ80);
+   Cz80_Set_Reg(&CZ80, CZ80_IX, 0xffff);
+   Cz80_Set_Reg(&CZ80, CZ80_IY, 0xffff);
+   Cz80_Set_Reg(&CZ80, CZ80_SP, 0x2000);
+   Pico.m.z80_fakeval = 0; // for faking when Z80 is disabled
 }
 
-#if 0
-static int had_irq = 0, z80_ppc, z80_ops_done = 0;
-int z80_cycles_left = 0;
-
-void z80_int(void)
+PICO_INTERNAL void z80_pack(unsigned char* data)
 {
-  had_irq = 1;
+   *(int*)data = 0x00007a43;  // "Cz"
+   *(int*)(data + 4) = Cz80_Get_Reg(&CZ80, CZ80_PC);
+   memcpy(data + 8, &CZ80, (INT32)&CZ80.BasePC - (INT32)&CZ80);
 }
 
-static void xfail(void)
+PICO_INTERNAL void z80_unpack(unsigned char* data)
 {
-  printf("PC: %04x, %04x\n", Cz80_Get_Reg(&CZ80, CZ80_PC), z80_ppc);
-  printf("z80_ops_done done: %i\n", z80_ops_done);
-  exit(1);
+   if (*(int*)data == 0x00007a43)    // "Cz" save?
+   {
+      memcpy(&CZ80, data + 8, (INT32)&CZ80.BasePC - (INT32)&CZ80);
+      Cz80_Set_Reg(&CZ80, CZ80_PC, *(int*)(data + 4));
+   }
+   else
+   {
+      z80_reset();
+      z80_int();
+   }
 }
-
-int  z80_run(int cycles)
-{
-  int fail = 0;
-  int cdrz, ccz;
-
-  z80_cycles_left = cycles;
-  z80_ppc = Cz80_Get_Reg(&CZ80, CZ80_PC);
-
-  if (had_irq) {
-    printf("irq @ %04x\n", Cz80_Get_Reg(&CZ80, CZ80_PC));
-    Cz80_Set_IRQ(&CZ80, 0, HOLD_LINE);
-    drZ80.Z80_IRQ = 1;
-    had_irq = 0;
-  }
-
-  while (z80_cycles_left > 0)
-  {
-    ccz = Cz80_Exec(&CZ80, 1);
-    cdrz = 1 - DrZ80Run(&drZ80, 1);
-
-    if (drZ80.Z80_IRQ && (drZ80.Z80IF&1))
-      cdrz += 1 - DrZ80Run(&drZ80, 1); // cz80 processes IRQ after EI, DrZ80 does not
-
-    if (cdrz != ccz) {
-      printf("cycles: %i vs %i\n", cdrz, ccz);
-      fail = 1;
-    }
-
-    if (drZ80.Z80PC - drZ80.Z80PC_BASE != Cz80_Get_Reg(&CZ80, CZ80_PC)) {
-      printf("PC: %04x vs %04x\n", drZ80.Z80PC - drZ80.Z80PC_BASE, Cz80_Get_Reg(&CZ80, CZ80_PC));
-      fail = 1;
-    }
-
-    if (fail) xfail();
-
-    z80_ops_done++;
-    z80_cycles_left -= ccz;
-    z80_ppc = Cz80_Get_Reg(&CZ80, CZ80_PC);
-  }
-
-  return co - z80_cycles_left;
-}
-#endif
-
-
-PICO_INTERNAL void z80_pack(unsigned char *data)
-{
-#if defined(_USE_MZ80)
-  struct mz80context mz80;
-  *(int *)data = 0x00005A6D; // "mZ"
-  mz80GetContext(&mz80);
-  memcpy(data+4, &mz80.z80clockticks, sizeof(mz80)-5*4); // don't save base&memhandlers
-#elif defined(_USE_DRZ80)
-  *(int *)data = 0x015A7244; // "DrZ" v1
-  drZ80.Z80PC = drZ80.z80_rebasePC(drZ80.Z80PC-drZ80.Z80PC_BASE);
-  drZ80.Z80SP = drZ80.z80_rebaseSP(drZ80.Z80SP-drZ80.Z80SP_BASE);
-  memcpy(data+4, &drZ80, 0x54);
-#elif defined(_USE_CZ80)
-  *(int *)data = 0x00007a43; // "Cz"
-  *(int *)(data+4) = Cz80_Get_Reg(&CZ80, CZ80_PC);
-  memcpy(data+8, &CZ80, (INT32)&CZ80.BasePC - (INT32)&CZ80);
-#endif
-}
-
-PICO_INTERNAL void z80_unpack(unsigned char *data)
-{
-#if defined(_USE_MZ80)
-  if (*(int *)data == 0x00005A6D) { // "mZ" save?
-    struct mz80context mz80;
-    mz80GetContext(&mz80);
-    memcpy(&mz80.z80clockticks, data+4, sizeof(mz80)-5*4);
-    mz80SetContext(&mz80);
-  } else {
-    z80_reset();
-    z80_int();
-  }
-#elif defined(_USE_DRZ80)
-  if (*(int *)data == 0x015A7244) { // "DrZ" v1 save?
-    memcpy(&drZ80, data+4, 0x54);
-    // update bases
-    drZ80.Z80PC = drZ80.z80_rebasePC(drZ80.Z80PC-drZ80.Z80PC_BASE);
-    drZ80.Z80SP = drZ80.z80_rebaseSP(drZ80.Z80SP-drZ80.Z80SP_BASE);
-  } else {
-    z80_reset();
-    drZ80.Z80IM = 1;
-    z80_int(); // try to goto int handler, maybe we won't execute trash there?
-  }
-#elif defined(_USE_CZ80)
-  if (*(int *)data == 0x00007a43) { // "Cz" save?
-    memcpy(&CZ80, data+8, (INT32)&CZ80.BasePC - (INT32)&CZ80);
-    Cz80_Set_Reg(&CZ80, CZ80_PC, *(int *)(data+4));
-  } else {
-    z80_reset();
-    z80_int();
-  }
-#endif
-}
-
-PICO_INTERNAL void z80_exit(void)
-{
-#if defined(_USE_MZ80)
-  mz80shutdown();
-#endif
-}
-
-#if 1 // defined(__DEBUG_PRINT) || defined(__GP2X__) || defined(__GIZ__)
-PICO_INTERNAL void z80_debug(char *dstr)
-{
-#if defined(_USE_DRZ80)
-  sprintf(dstr, "Z80 state: PC: %04x SP: %04x\n", drZ80.Z80PC-drZ80.Z80PC_BASE, drZ80.Z80SP-drZ80.Z80SP_BASE);
-#elif defined(_USE_CZ80)
-  sprintf(dstr, "Z80 state: PC: %04x SP: %04x\n", CZ80.PC - CZ80.BasePC, CZ80.SP.W);
-#endif
-}
-#endif
