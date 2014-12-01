@@ -50,20 +50,6 @@ static void snd_write(int len);
 
 /* functions called by the core */
 
-void emu_video_mode_change(int start_line, int line_count, int is_32cols)
-{
-   memset(vout_buf, 0, 320 * 240 * 2);
-   vout_width = is_32cols ? 256 : 320;
-   // PicoDrawSetOutBuf(vout_buf, vout_width * 2);
-
-   vout_height = line_count;
-   vout_offset = vout_width * start_line;
-}
-
-void emu_32x_startup(void)
-{
-}
-
 void lprintf(const char* fmt, ...)
 {
    char buffer[256];
@@ -74,6 +60,7 @@ void lprintf(const char* fmt, ...)
    if (log_cb)
       log_cb(RETRO_LOG_INFO, "%s\n", fmt);
 }
+
 
 /* libretro */
 void retro_set_environment(retro_environment_t cb)
@@ -482,7 +469,7 @@ static const char* find_bios(int* region, const char* cd_fname)
 
    return NULL;
 }
-#include "platform/common/emu.h"
+#include "libretro_emu.h"
 bool retro_load_game(const struct retro_game_info* info)
 {
    static char carthw_path[256];
@@ -499,11 +486,12 @@ bool retro_load_game(const struct retro_game_info* info)
          disks[i].fname = NULL;
       }
    }
-   //   char romFileName[1024];
-   //   strcpy(romFileName, info->path);
-   //   emu_ReloadRom(romFileName);
 
 
+
+   char romFileName[1024];
+   strcpy(romFileName, info->path);
+   emu_ReloadRom(romFileName);
 
    disk_current_index = 0;
    disk_count = 1;
@@ -511,17 +499,14 @@ bool retro_load_game(const struct retro_game_info* info)
 
    make_system_path(carthw_path, sizeof(carthw_path), "carthw", ".cfg");
 
-   //   PicoCartInsert
-   //   media_type = PicoLoadMedia(info->path, carthw_path,
-   //         find_bios, NULL);
-   /* new */
-   unsigned int rom_size = 0;
-   unsigned char* rom_data = NULL;
-   pm_file* rom = pm_open(info->path);
-   PicoCartUnload();
-   PicoCartLoad(rom, &rom_data, &rom_size);
-   pm_close(rom);
-   rom = NULL;
+
+//   unsigned int rom_size = 0;
+//   unsigned char* rom_data = NULL;
+//   pm_file* rom = pm_open(info->path);
+//   PicoCartUnload();
+//   PicoCartLoad(rom, &rom_data, &rom_size);
+//   pm_close(rom);
+//   rom = NULL;
    /* new */
 
    PicoReset();
