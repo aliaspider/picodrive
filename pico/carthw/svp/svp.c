@@ -8,9 +8,6 @@
 
 #include "../../pico_int.h"
 #include "compiler.h"
-#ifdef __GP2X__
-#include <sys/mman.h>
-#endif
 
 svp_t *svp = NULL;
 int PicoSVPCycles = 850; // cycles/line, just a guess

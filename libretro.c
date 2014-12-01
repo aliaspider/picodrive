@@ -10,19 +10,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#ifndef _WIN32
 #ifndef NO_MMAP
 #include <sys/mman.h>
 #endif
-#else
-#include <io.h>
-#include <windows.h>
-#include <sys/types.h>
-#endif
 #include <errno.h>
-#ifdef __MACH__
-#include <libkern/OSCacheControl.h>
-#endif
+
 
 #include <pico/pico_int.h>
 #include "platform/psp/port_config.h"
@@ -863,17 +855,6 @@ static void update_variables(void)
 		else
 			PicoOpt &= ~POPT_EN_MCD_RAMCART;
 	}
-
-#ifdef DRC_SH2
-	var.value = NULL;
-	var.key = "picodrive_drc";
-	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
-		if (strcmp(var.value, "enabled") == 0)
-			PicoOpt |= POPT_EN_DRC;
-		else
-			PicoOpt &= ~POPT_EN_DRC;
-	}
-#endif
 }
 
 void retro_run(void) 
@@ -924,9 +905,7 @@ void retro_init(void)
 		| POPT_EN_MCD_PCM|POPT_EN_MCD_CDDA|POPT_EN_MCD_GFX
 //		| POPT_EN_32X|POPT_EN_PWM
 		| POPT_ACC_SPRITES|POPT_DIS_32C_BORDER;
-#ifdef __arm__
-	PicoOpt |= POPT_EN_DRC;
-#endif
+
 	PsndRate = 44100;
 	PicoAutoRgnOrder = 0x184; // US, EU, JP
 
