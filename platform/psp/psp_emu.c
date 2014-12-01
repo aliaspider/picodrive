@@ -103,10 +103,10 @@ void emu_Init(void)
 
 	sound_init();
 
-	PicoInit();
-	PicoMessage = emu_msg_cb;
-	PicoMCDopenTray = emu_msg_tray_open;
-	PicoMCDcloseTray = menu_loop_tray;
+   PicoInit();
+   PicoMessage = emu_msg_cb;
+   PicoMCDopenTray = emu_msg_tray_open;
+   PicoMCDcloseTray = menu_loop_tray;
 }
 
 void emu_Deinit(void)

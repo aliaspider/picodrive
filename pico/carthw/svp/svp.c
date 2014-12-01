@@ -97,20 +97,11 @@ static int PicoSVPDma(unsigned int source, int len, unsigned short **srcp, unsig
 
 void PicoSVPInit(void)
 {
-#ifdef __GP2X__
-	int ret;
-	ret = munmap(tcache, SSP_DRC_SIZE);
-	printf("munmap tcache: %i\n", ret);
-#endif
 }
 
 
 static void PicoSVPShutdown(void)
 {
-#ifdef __GP2X__
-	// also unmap tcache
-	PicoSVPInit();
-#endif
 }
 
 
@@ -132,19 +123,8 @@ void PicoSVPStartup(void)
 	svp = (void *) ((char *)tmp + 0x200000);
 	memset(svp, 0, sizeof(*svp));
 
-#ifdef __GP2X__
-	tmp = mmap(tcache, SSP_DRC_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
-	printf("mmap tcache: %p, asked %p\n", tmp, tcache);
-#endif
-
 	// init SVP compiler
 	svp_dyn_ready = 0;
-#ifndef PSP
-	if (PicoOpt&POPT_EN_SVP_DRC) {
-		if (ssp1601_dyn_startup()) return;
-		svp_dyn_ready = 1;
-	}
-#endif
 
 	// init ok, setup hooks..
 	PicoRead16Hook = PicoSVPRead16;

@@ -887,9 +887,6 @@ int ym2612_write_local(u32 a, u32 d, int is_from_z80)
    case 0: /* address port 0 */
       ym2612.OPN.ST.address = d;
       ym2612.addr_A1 = 0;
-#ifdef __GP2X__
-      if (PicoOpt & POPT_EXT_FM) YM2612Write_940(a, d, -1);
-#endif
       return 0;
 
    case 1: /* data port 0    */
@@ -961,13 +958,7 @@ int ym2612_write_local(u32 a, u32 d, int is_from_z80)
             ym2612.OPN.ST.status &= ~2;
 
          if ((d ^ old_mode) & 0xc0)
-         {
-#ifdef __GP2X__
-            if (PicoOpt & POPT_EXT_FM) return YM2612Write_940(a, d,
-                                                 get_scanline(is_from_z80));
-#endif
             return 1;
-         }
          return 0;
       }
       case 0x2b:   /* DAC Sel  (YM2612) */
@@ -975,9 +966,6 @@ int ym2612_write_local(u32 a, u32 d, int is_from_z80)
          int scanline = get_scanline(is_from_z80);
          ym2612.dacen = d & 0x80;
          if (d & 0x80) PsndDacLine = scanline;
-#ifdef __GP2X__
-         if (PicoOpt & POPT_EXT_FM) YM2612Write_940(a, d, scanline);
-#endif
          return 0;
       }
       }
@@ -986,9 +974,6 @@ int ym2612_write_local(u32 a, u32 d, int is_from_z80)
    case 2: /* address port 1 */
       ym2612.OPN.ST.address = d;
       ym2612.addr_A1 = 1;
-#ifdef __GP2X__
-      if (PicoOpt & POPT_EXT_FM) YM2612Write_940(a, d, -1);
-#endif
       return 0;
 
    case 3: /* data port 1    */
@@ -1000,10 +985,6 @@ int ym2612_write_local(u32 a, u32 d, int is_from_z80)
       break;
    }
 
-#ifdef __GP2X__
-   if (PicoOpt & POPT_EXT_FM)
-      return YM2612Write_940(a, d, get_scanline(is_from_z80));
-#endif
    return YM2612Write_(a, d);
 }
 
@@ -1055,12 +1036,7 @@ void ym2612_pack_state(void)
    elprintf(EL_YMTIMER, "save: timer a %i/%i", tat >> 16, tac);
    elprintf(EL_YMTIMER, "save: timer b %i/%i", tbt >> 16, tbc);
 
-#ifdef __GP2X__
-   if (PicoOpt & POPT_EXT_FM)
-      YM2612PicoStateSave2_940(tat, tbt);
-   else
-#endif
-      YM2612PicoStateSave2(tat, tbt);
+   YM2612PicoStateSave2(tat, tbt);
 }
 
 void ym2612_unpack_state(void)
@@ -1094,12 +1070,7 @@ void ym2612_unpack_state(void)
       ym2612_write_local(3, ym2612.REGS[i | 0x100], 0);
    }
 
-#ifdef __GP2X__
-   if (PicoOpt & POPT_EXT_FM)
-      ret = YM2612PicoStateLoad2_940(&tat, &tbt);
-   else
-#endif
-      ret = YM2612PicoStateLoad2(&tat, &tbt);
+   ret = YM2612PicoStateLoad2(&tat, &tbt);
    if (ret != 0)
    {
       elprintf(EL_STATUS, "old ym2612 state");

@@ -26,11 +26,6 @@ extern int  mp3_get_bitrate(FILE *f, int size);
 extern void mp3_start_play(FILE *f, int pos);
 extern void mp3_update(int *buffer, int length, int stereo);
 
-// this function should write-back d-cache and invalidate i-cache
-// on a mem region [start_addr, end_addr)
-// used by SVP dynarec
-extern void cache_flush_d_inval_i(const void *start_addr, const void *end_addr);
-
 // Pico.c
 #define POPT_EN_FM          (1<< 0) // 00 000x
 #define POPT_EN_PSG         (1<< 1)

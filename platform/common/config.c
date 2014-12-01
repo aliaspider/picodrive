@@ -107,15 +107,6 @@ static void custom_write(FILE *f, const menu_entry *me, int no_def)
 
 		case MA_OPT_SCALING:
 			if (no_def && defaultConfig.scaling == currentConfig.scaling) return;
-#ifdef __GP2X__
-			switch (currentConfig.scaling) {
-				default: str = "OFF"; break;
-				case 1:  str = "hw horizontal";     break;
-				case 2:  str = "hw horiz. + vert."; break;
-				case 3:  str = "sw horizontal";     break;
-			}
-			fprintf(f, "Scaling = %s", str);
-#endif
 			break;
 		case MA_OPT_FRAMESKIP:
 			if (no_def && defaultConfig.Frameskip == currentConfig.Frameskip) return;
@@ -148,9 +139,7 @@ static void custom_write(FILE *f, const menu_entry *me, int no_def)
 			break;
 		case MA_OPT_CPU_CLOCKS:
 			if (no_def && defaultConfig.CPUclock == currentConfig.CPUclock) return;
-#ifdef __GP2X__
-			fprintf(f, "GP2X CPU clocks = %i", currentConfig.CPUclock);
-#elif defined(PSP)
+#ifdef PSP
 			fprintf(f, "PSP CPU clock = %i", currentConfig.CPUclock);
 #endif
 			break;
@@ -236,9 +225,6 @@ static void keys_write(FILE *fn, const char *bind_str, int dev_id, const int *bi
 			continue;
 
 		name = in_get_key_name(dev_id, t);
-#ifdef __GP2X__
-		if (strcmp(name, "SELECT") == 0) continue;
-#endif
 
 		if (binds[t] == 0 && def_binds[t] != 0) {
 			fprintf(fn, "%s %s =" NL, bind_str, name);
