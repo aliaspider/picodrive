@@ -97,5 +97,5 @@ pico/cd/gfx_cd.o : pico/cd/gfx_cd.c
 # cleanup
 
 fast_clean:
-#	$(RM) $(OBJS_BASE)
-	$(RM) $(OBJS)
+	$(RM) $(OBJS_BASE)
+#	$(RM) $(OBJS)

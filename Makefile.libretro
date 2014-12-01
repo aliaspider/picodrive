@@ -55,7 +55,7 @@ OBJS += cpu/cz80/cz80.o
 #INCDIRS  = -I. -Iplatform/psp
 #INCDIRS += -I$(shell psp-config --pspsdk-path)/include
 
-INCDIRS += -Iplatform/psp
+INCDIRS += -Iplatform/psp -I$(shell psp-config --pspsdk-path)/include
 
 
 CFLAGS += $(INCDIRS)
@@ -98,6 +98,6 @@ pico/cd/gfx_cd.o : pico/cd/gfx_cd.c
 	$(CC) $(CFLAGS) $(OPTIMIZE) -c $< -o $@
 
 clean:
-#	$(RM) $(TARGET) $(OBJS_BASE)
-	$(RM) $(TARGET) $(OBJS)
+	$(RM) $(TARGET) $(OBJS_BASE)
+#	$(RM) $(TARGET) $(OBJS)
 
