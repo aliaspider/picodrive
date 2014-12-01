@@ -10,9 +10,11 @@ else
 CFLAGS += -O2 -ftracer -fstrength-reduce -ffast-math
 endif
 
+CFLAGS += -I. -Iplatform/psp
+
 
 # frontend and stuff
-OBJS += main.o psp_emu.o menu.o psp.o asm_utils.o
+OBJS += platform/psp/main.o platform/psp/psp_emu.o platform/psp/menu.o platform/psp/psp.o platform/psp/asm_utils.o
 
 # common
 OBJS += platform/common/emu.o platform/common/menu.o platform/common/fonts.o platform/common/config.o
@@ -48,10 +50,6 @@ OBJS_BASE := $(OBJS)
 
 OBJS += cpu/fame/famec.o
 
-
-vpath %.c = ../..
-vpath %.s = ../..
-
 LIBS += -lm -lpspgu -lpsppower -lpspaudio -lpsprtc
 LDFLAGS +=
 
@@ -59,7 +57,7 @@ LDFLAGS +=
 TARGET = PicoDrive
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = PicoDrive
-PSP_EBOOT_ICON = data/icon.png
+PSP_EBOOT_ICON = platform/psp/data/icon.png
 
 BUILD_PRX = 1
 
@@ -76,23 +74,23 @@ AS := psp-as
 	$(AS) -march=allegrex -mtune=allegrex $< -o $@
 
 
-cpu/fame/famec.o : ../../cpu/fame/famec.c
+cpu/fame/famec.o : cpu/fame/famec.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -Wno-unused -c $< -o $@
 
-pico/misc.o : ../../pico/misc.c
+pico/misc.o : pico/misc.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -c $< -o $@ -D_ASM_MISC_C_AMIPS
 
-pico/memory.o : ../../pico/memory.c
+pico/memory.o : pico/memory.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -c $< -o $@ -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS
 
-pico/cd/memory.o : ../../pico/cd/memory.c
+pico/cd/memory.o : pico/cd/memory.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -c $< -o $@
 
-pico/cd/gfx_cd.o : ../../pico/cd/gfx_cd.c
+pico/cd/gfx_cd.o : pico/cd/gfx_cd.c
 	@echo ">>>" $<
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -100,3 +98,4 @@ pico/cd/gfx_cd.o : ../../pico/cd/gfx_cd.c
 
 fast_clean:
 	$(RM) $(OBJS_BASE)
+#	$(RM) $(OBJS)
