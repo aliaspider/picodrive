@@ -272,17 +272,3 @@ void psp_resume_suspend(void)
    }
 }
 
-/* alt logging */
-#define LOG_FILE "log.txt"
-
-#ifndef LPRINTF_STDIO
-typedef struct _log_entry
-{
-   char buff[256];
-   struct _log_entry* next;
-} log_entry;
-
-static log_entry* le_root = NULL;
-#endif
-
-

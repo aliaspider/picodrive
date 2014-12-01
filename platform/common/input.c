@@ -13,15 +13,13 @@ typedef struct
 	int probed:1;
 } in_dev_t;
 
-static in_drv_t in_drivers[IN_DRVID_COUNT];
+static in_drv_t in_driver;
 static in_dev_t in_devices[IN_MAX_DEVS];
 static int in_dev_count = 0;
 
-#define DRV(id) in_drivers[(unsigned)(id) < IN_DRVID_COUNT ? (id) : 0]
-
 static int in_bind_count(int drv_id)
 {
-	int count = DRV(drv_id).get_bind_count();
+   int count = in_driver.get_bind_count();
 	if (count <= 0)
 		printf("input: failed to get bind count for drv %d\n", drv_id);
 
@@ -40,7 +38,7 @@ static int *in_alloc_binds(int drv_id)
 	if (binds == NULL)
 		return NULL;
 
-	DRV(drv_id).get_def_binds(binds + count);
+   in_driver.get_def_binds(binds + count);
 	memcpy(binds, binds + count, count * sizeof(binds[0]));
 
 	return binds;
@@ -49,7 +47,7 @@ static int *in_alloc_binds(int drv_id)
 static void in_free(in_dev_t *dev)
 {
 	if (dev->probed)
-		DRV(dev->drv_id).free(dev->drv_data);
+      in_driver.free(dev->drv_data);
 	dev->probed = 0;
 	dev->drv_data = NULL;
 	free(dev->name);
@@ -117,7 +115,7 @@ update:
 	in_devices[i].drv_data = drv_data;
 
 	if (in_devices[i].binds != NULL) {
-		ret = DRV(drv_id).clean_binds(drv_data, in_devices[i].binds);
+      ret = in_driver.clean_binds(drv_data, in_devices[i].binds);
 		if (ret == 0) {
 			/* no useable binds */
 			free(in_devices[i].binds);
@@ -132,8 +130,7 @@ void in_probe(void)
 	for (i = 0; i < in_dev_count; i++)
 		in_devices[i].probed = 0;
 
-	for (i = 1; i < IN_DRVID_COUNT; i++)
-		in_drivers[i].probe();
+   in_driver.probe();
 
 	/* get rid of devs without binds and probes */
 	for (i = 0; i < in_dev_count; i++) {
@@ -156,25 +153,25 @@ void in_set_blocking(int is_blocking)
 
 	for (i = 0; i < in_dev_count; i++) {
 		if (in_devices[i].probed)
-			DRV(in_devices[i].drv_id).set_blocking(in_devices[i].drv_data, is_blocking);
+         in_driver.set_blocking(in_devices[i].drv_data, is_blocking);
 	}
 
 	menu_key_state = 0;
 	/* flush events */
-	in_update_keycode(NULL, NULL, 1);
+   in_update_keycode(NULL, NULL);
 }
 
 /* 
  * update with wait for a press, return keycode
  * only can use 1 drv here..
  */
-int in_update_keycode(int *dev_id_out, int *is_down_out, int timeout_ms)
+int in_update_keycode(int *dev_id_out, int *is_down_out)
 {
 	int result = 0, dev_id, is_down, result_menu;
 
 	/* keep track of menu key state, to allow mixing
 	 * in_update_keycode() and in_update_menu() calls */
-	result_menu = DRV(in_devices[dev_id].drv_id).menu_translate(result);
+   result_menu = in_driver.menu_translate(result);
 	if (result_menu != 0) {
 		if (is_down)
 			menu_key_state |=  result_menu;
@@ -192,27 +189,6 @@ int in_update_keycode(int *dev_id_out, int *is_down_out, int timeout_ms)
 /* 
  * same as above, only return bitfield of BTN_*
  */
-int in_update_menu(int timeout_ms)
-{
-	int keys_old = menu_key_state;
-
-	while (1)
-	{
-		int code, is_down = 0, dev_id = 0;
-
-		code = in_update_keycode(&dev_id, &is_down, timeout_ms);
-		code = DRV(in_devices[dev_id].drv_id).menu_translate(code);
-
-		if (timeout_ms != 0)
-			break;
-		if (code == 0)
-			continue;
-		if (keys_old != menu_key_state)
-			break;
-	}
-
-	return menu_key_state;
-}
 
 const int *in_get_dev_binds(int dev_id)
 {
@@ -258,7 +234,7 @@ const char *in_get_key_name(int dev_id, int keycode)
 	if (dev_id < 0 || dev_id >= IN_MAX_DEVS)
 		return "Unkn0";
 
-	name = DRV(in_devices[dev_id].drv_id).get_key_name(keycode);
+   name = in_driver.get_key_name(keycode);
 	if (name != NULL)
 		return name;
 
@@ -297,7 +273,7 @@ int in_bind_key(int dev_id, int keycode, int mask, int force_unbind)
 	else
 		dev->binds[keycode] ^=  mask;
 	
-	ret = DRV(dev->drv_id).clean_binds(dev->drv_data, dev->binds);
+   ret = in_driver.clean_binds(dev->drv_data, dev->binds);
 	if (ret == 0) {
 		free(dev->binds);
 		dev->binds = NULL;
@@ -311,13 +287,9 @@ int in_config_parse_dev(const char *name)
 {
 	int drv_id = -1, i;
 
-	for (i = 0; i < IN_DRVID_COUNT; i++) {
-		int len = strlen(in_drivers[i].prefix);
-		if (strncmp(name, in_drivers[i].prefix, len) == 0) {
-			drv_id = i;
-			break;
-		}
-	}
+   int len = strlen(in_driver.prefix);
+   if (strncmp(name, in_driver.prefix, len) == 0)
+      drv_id = 0;
 
 	if (drv_id < 0) {
 		printf("input: missing driver for %s\n", name);
@@ -404,7 +376,7 @@ int in_config_bind_key(int dev_id, const char *key, int binds)
 			in_config_start();
 		}
 
-		kc = DRV(dev->drv_id).get_key_code(key);
+      kc = in_driver.get_key_code(key);
 		if (kc < 0 && strlen(key) == 1) {
 			/* assume scancode */
 			kc = key[0];
@@ -445,7 +417,7 @@ void in_config_end(void)
 		if (dev->drv_data == NULL)
 			continue;
 
-		ret = DRV(dev->drv_id).clean_binds(dev->drv_data, binds);
+      ret = in_driver.clean_binds(dev->drv_data, binds);
 		if (ret == 0) {
 			/* no useable binds */
 			free(dev->binds);
@@ -482,22 +454,18 @@ static const char *in_def_get_key_name(int keycode) { return NULL; }
 
 void in_init(void)
 {
-	int i;
-
-	memset(in_drivers, 0, sizeof(in_drivers));
+   memset(&in_driver, 0, sizeof(in_driver));
 	memset(in_devices, 0, sizeof(in_devices));
 	in_dev_count = 0;
 
-	for (i = 0; i < IN_DRVID_COUNT; i++) {
-		in_drivers[i].prefix = "none:";
-		in_drivers[i].probe = in_def_probe;
-		in_drivers[i].free = in_def_free;
-		in_drivers[i].get_bind_count = in_def_get_bind_count;
-		in_drivers[i].get_def_binds = in_def_get_def_binds;
-		in_drivers[i].clean_binds = in_def_clean_binds;
-		in_drivers[i].set_blocking = in_def_set_blocking;
-		in_drivers[i].menu_translate = in_def_menu_translate;
-		in_drivers[i].get_key_code = in_def_get_key_code;
-		in_drivers[i].get_key_name = in_def_get_key_name;
-	}
+   in_driver.prefix = "none:";
+   in_driver.probe = in_def_probe;
+   in_driver.free = in_def_free;
+   in_driver.get_bind_count = in_def_get_bind_count;
+   in_driver.get_def_binds = in_def_get_def_binds;
+   in_driver.clean_binds = in_def_clean_binds;
+   in_driver.set_blocking = in_def_set_blocking;
+   in_driver.menu_translate = in_def_menu_translate;
+   in_driver.get_key_code = in_def_get_key_code;
+   in_driver.get_key_name = in_def_get_key_name;
 }

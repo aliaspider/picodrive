@@ -166,19 +166,6 @@ void menu_draw_selection(int x, int y, int w)
 	}
 }
 
-static int parse_hex_color(char *buff)
-{
-	char *endp = buff;
-	int t = (int) strtoul(buff, &endp, 16);
-	if (endp != buff)
-#ifdef PSP
-		return ((t<<8)&0xf800) | ((t>>5)&0x07e0) | ((t>>19)&0x1f);
-#else
-		return ((t>>8)&0xf800) | ((t>>5)&0x07e0) | ((t>>3)&0x1f);
-#endif
-	return -1;
-}
-
 void menu_init(void)
 {
 	int c, l;

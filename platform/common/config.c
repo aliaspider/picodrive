@@ -412,8 +412,7 @@ write:
 	{
 		const int *binds = in_get_dev_binds(t);
 		const char *name = in_get_dev_name(t);
-		char strbind[16];
-		int count;
+      char strbind[16];
 
 		if (binds == NULL || name == NULL)
 			continue;
@@ -421,7 +420,6 @@ write:
 		sprintf(strbind, "bind%d", t);
 		if (t == 0) strbind[4] = 0;
 
-		count = in_get_dev_bind_count(t);
 		keys_write(fn, strbind, t, binds, no_defaults);
 	}
 

@@ -41,8 +41,9 @@ extern void blit1(void);
 #ifdef __LIBRETRO__
 void lprintf(const char *fmt, ...);
 #elif defined(PSP)
-#define lprintf printf
+#include <stdio.h>
 #include "psp.h"
+#define lprintf printf
 #endif
 
 
