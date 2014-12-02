@@ -44,24 +44,6 @@ static void strlwr_(char* string)
       *p = (char)tolower(*p);
 }
 
-static int try_rfn_cut(char* fname)
-{
-   FILE* tmp;
-   char* p;
-
-   p = fname + strlen(fname) - 1;
-   for (; p > fname; p--)
-      if (*p == '.') break;
-   *p = 0;
-
-   if ((tmp = fopen(fname, "rb")))
-   {
-      fclose(tmp);
-      return 1;
-   }
-   return 0;
-}
-
 static void get_ext(char* file, char* ext)
 {
    char* p;
@@ -696,4 +678,236 @@ void emu_RunEventsPico(unsigned int events)
    }
 }
 
+
+//PSP
+#define VRAMOFFS_STUFF  0x00100000
+#define VRAM_STUFF      ((void *) (0x44000000+VRAMOFFS_STUFF))
+#define VRAM_CACHED_STUFF   ((void *) (0x04000000+VRAMOFFS_STUFF))
+
+unsigned char *PicoDraw2FB = (unsigned char *)VRAM_CACHED_STUFF + 8; // +8 to be able to skip border with 1 quadword..
+//#define PICO_PEN_ADJUST_X 4
+//#define PICO_PEN_ADJUST_Y 2
+//static int pico_pen_x = 320/2, pico_pen_y = 240/2;
+
+extern void amips_clut(unsigned short *dst, unsigned char *src, unsigned short *pal, int count);
+extern void amips_clut_6bit(unsigned short *dst, unsigned char *src, unsigned short *pal, int count);
+
+static void (*amips_clut_f)(unsigned short *dst, unsigned char *src, unsigned short *pal, int count) = NULL;
+
+
+// pointers must be word aligned, gammaa_val = -4..16, black_lvl = {0,1,2}
+void do_pal_convert(unsigned short *dest, unsigned short *src, int gammaa_val, int black_lvl);
+
+static unsigned short __attribute__((aligned(16))) localPal[0x100];
+static int dynamic_palette = 0, need_pal_upload = 0, blit_16bit_mode = 0;
+
+static void do_pal_update(int allow_sh, int allow_as)
+{
+   unsigned int *dpal=(void *)localPal;
+   int i;
+
+   //for (i = 0x3f/2; i >= 0; i--)
+   //	dpal[i] = ((spal[i]&0x000f000f)<< 1)|((spal[i]&0x00f000f0)<<3)|((spal[i]&0x0f000f00)<<4);
+   do_pal_convert(localPal, Pico.cram, 0, 0);
+
+   Pico.m.dirtyPal = 0;
+   need_pal_upload = 1;
+
+   if (allow_sh && (Pico.video.reg[0xC]&8)) // shadow/hilight?
+   {
+      // shadowed pixels
+      for (i = 0x3f/2; i >= 0; i--)
+         dpal[0x20|i] = dpal[0x60|i] = (dpal[i]>>1)&0x7bcf7bcf;
+      // hilighted pixels
+      for (i = 0x3f; i >= 0; i--) {
+         int t=localPal[i]&0xf79e;t+=0x4208;
+         if (t&0x20) t|=0x1e;
+         if (t&0x800) t|=0x780;
+         if (t&0x10000) t|=0xf000;
+         t&=0xf79e;
+         localPal[0x80|i]=(unsigned short)t;
+      }
+      localPal[0xe0] = 0;
+      localPal[0xf0] = 0x001f;
+   }
+   else if (allow_as && (rendstatus & PDRAW_SPR_LO_ON_HI))
+   {
+      memcpy32((int *)dpal+0x80/2, (void *)localPal, 0x40*2/4);
+   }
+}
+
+
+static void do_slowmode_lines(int line_to)
+{
+   int line = 0, line_len = (Pico.video.reg[12]&1) ? 320 : 256;
+   unsigned short *dst = (unsigned short *)VRAM_STUFF + 512*240/2;
+   unsigned char  *src = (unsigned char  *)VRAM_CACHED_STUFF + 16;
+   if (!(Pico.video.reg[1]&8)) { line = 8; dst += 512*8; src += 512*8; }
+
+   for (; line < line_to; line++, dst+=512, src+=512)
+      amips_clut_f(dst, src, localPal, line_len);
+}
+
+void EmuScanPrepare(void)
+{
+   HighCol = (unsigned char *)VRAM_CACHED_STUFF + 8;
+   if (!(Pico.video.reg[1]&8)) HighCol += 8*512;
+
+   if (dynamic_palette > 0)
+      dynamic_palette--;
+
+   if (Pico.m.dirtyPal)
+      do_pal_update(1, 1);
+   if ((rendstatus & PDRAW_SPR_LO_ON_HI) && !(Pico.video.reg[0xC]&8))
+        amips_clut_f = amips_clut_6bit;
+   else amips_clut_f = amips_clut;
+}
+
+static int EmuScanSlowBegin(unsigned int num)
+{
+   if (!(Pico.video.reg[1]&8)) num += 8;
+
+   if (!dynamic_palette)
+      HighCol = (unsigned char *)VRAM_CACHED_STUFF + num * 512 + 8;
+
+   return 0;
+}
+
+static int EmuScanSlowEnd(unsigned int num)
+{
+   if (!(Pico.video.reg[1]&8)) num += 8;
+
+   if (Pico.m.dirtyPal) {
+      if (!dynamic_palette) {
+         do_slowmode_lines(num);
+         dynamic_palette = 3; // last for 2 more frames
+      }
+      do_pal_update(1, 1);
+   }
+
+   if (dynamic_palette) {
+      int line_len = (Pico.video.reg[12]&1) ? 320 : 256;
+      void *dst = (char *)VRAM_STUFF + 512*240 + 512*2*num;
+      amips_clut_f(dst, HighCol + 8, localPal, line_len);
+   }
+
+   return 0;
+}
+#include "pspgu.h"
+#include "pspkernel.h"
+#include "libretro.h"
+
+static void blitscreen_clut(void)
+{
+   static unsigned int __attribute__((aligned(16))) d_list[256];
+   sceGuStart(GU_DIRECT, d_list);
+
+   if (dynamic_palette)
+   {
+      if (!blit_16bit_mode) { // the current mode is not 16bit
+         sceGuTexMode(GU_PSM_5650, 0, 0, 0);
+         sceGuTexImage(0,512,512,512,(char *)VRAM_STUFF + 512*240);
+
+         blit_16bit_mode = 1;
+      }
+   }
+   else
+   {
+      if (blit_16bit_mode) {
+         sceGuClutMode(GU_PSM_5650,0,0xff,0);
+         sceGuTexMode(GU_PSM_T8,0,0,0); // 8-bit image
+         sceGuTexImage(0,512,512,512,(char *)VRAM_STUFF + 16);
+         blit_16bit_mode = 0;
+      }
+
+      if ((PicoOpt&0x10) && Pico.m.dirtyPal)
+         do_pal_update(0, 0);
+
+      sceKernelDcacheWritebackAll();
+
+      if (need_pal_upload) {
+         need_pal_upload = 0;
+         sceGuClutLoad((256/8), localPal); // upload 32*8 entries (256)
+      }
+   }
+   sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
+   sceGuDisable(GU_BLEND);
+
+   sceGuFinish();
+
+   extern retro_video_refresh_t video_cb;
+
+   video_cb(((void*)-1), 320, 240, 1024);
+
+}
+
+
+//static void cd_leds(void)
+//{
+//   unsigned int reg, col_g, col_r, *p;
+
+//   reg = Pico_mcd->s68k_regs[0];
+
+//   p = (unsigned int *)((short *)psp_screen + 512*2+4+2);
+//   col_g = (reg & 2) ? 0x06000600 : 0;
+//   col_r = (reg & 1) ? 0x00180018 : 0;
+//   *p++ = col_g; *p++ = col_g; p+=2; *p++ = col_r; *p++ = col_r; p += 512/2 - 12/2;
+//   *p++ = col_g; *p++ = col_g; p+=2; *p++ = col_r; *p++ = col_r; p += 512/2 - 12/2;
+//   *p++ = col_g; *p++ = col_g; p+=2; *p++ = col_r; *p++ = col_r;
+//}
+
+//static void draw_pico_ptr(void)
+//{
+//   unsigned char *p = (unsigned char *)VRAM_STUFF + 16;
+
+//   // only if pen enabled and for 8bit mode
+//   if (pico_inp_mode == 0 || blit_16bit_mode) return;
+
+//   p += 512 * (pico_pen_y + PICO_PEN_ADJUST_Y);
+//   p += pico_pen_x + PICO_PEN_ADJUST_X;
+//   p[  -1] = 0xe0; p[   0] = 0xf0; p[   1] = 0xe0;
+//   p[ 511] = 0xf0; p[ 512] = 0xf0; p[ 513] = 0xf0;
+//   p[1023] = 0xe0; p[1024] = 0xf0; p[1025] = 0xe0;
+//}
+
+/* called after rendering is done, but frame emulation is not finished */
+void blit1(void)
+{
+   if (PicoOpt&0x10)
+   {
+      int i;
+      unsigned char *pd;
+      // clear top and bottom trash
+      for (pd = PicoDraw2FB+8, i = 8; i > 0; i--, pd += 512)
+         memset32((int *)pd, 0xe0e0e0e0, 320/4);
+      for (pd = PicoDraw2FB+512*232+8, i = 8; i > 0; i--, pd += 512)
+         memset32((int *)pd, 0xe0e0e0e0, 320/4);
+   }
+
+//   if (PicoAHW & PAHW_PICO)
+//      draw_pico_ptr();
+
+   blitscreen_clut();
+}
+
+
+// clears whole screen or just the notice area (in all buffers)
+void clearArea(void)
+{
+   memset32(VRAM_CACHED_STUFF, 0xe0e0e0e0, 512*240/4);
+   memset32((int *)VRAM_CACHED_STUFF+512*240/4, 0, 512*240*2/4);
+}
+
+void vidResetMode(void)
+{
+    // slow rend.
+   PicoDrawSetColorFormat(-1);
+   PicoScanBegin = EmuScanSlowBegin;
+   PicoScanEnd = EmuScanSlowEnd;
+
+   localPal[0xe0] = 0;
+   localPal[0xf0] = 0x001f;
+   Pico.m.dirtyPal = 1;
+   blit_16bit_mode = dynamic_palette = 0;
+}
 

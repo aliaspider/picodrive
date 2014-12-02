@@ -19,24 +19,11 @@
 #include "libretro.h"
 
 static retro_log_printf_t log_cb;
-static retro_video_refresh_t video_cb;
+retro_video_refresh_t video_cb;
 static retro_input_poll_t input_poll_cb;
 static retro_input_state_t input_state_cb;
 static retro_environment_t environ_cb;
 static retro_audio_sample_batch_t audio_batch_cb;
-
-#define VOUT_MAX_WIDTH 320
-#define VOUT_MAX_HEIGHT 240
-static void* vout_buf;
-static int vout_width, vout_height, vout_offset;
-
-//#ifdef PSP
-//unsigned char* PicoDraw2FB = (unsigned char*)0x44100000;
-//#endif
-
-//#ifdef PSP
-unsigned char* PicoDraw2FB = NULL;
-//#endif
 
 #ifdef _MSC_VER
 static short sndBuffer[2 * 44100 / 50];
@@ -133,9 +120,9 @@ void retro_get_system_av_info(struct retro_system_av_info* info)
    info->timing.fps            = Pico.m.pal ? 50 : 60;
    info->timing.sample_rate    = 44100;
    info->geometry.base_width   = 320;
-   info->geometry.base_height  = vout_height;
-   info->geometry.max_width    = VOUT_MAX_WIDTH;
-   info->geometry.max_height   = VOUT_MAX_HEIGHT;
+   info->geometry.base_height  = 240;
+   info->geometry.max_width    = 320;
+   info->geometry.max_height   = 240;
    info->geometry.aspect_ratio = 0.0f;
 }
 
@@ -518,6 +505,11 @@ bool retro_load_game(const struct retro_game_info* info)
 
    //   PicoLoopPrepare();
 
+   vidResetMode();
+   clearArea();
+   Pico.m.dirtyPal = 1;
+
+
    if (PicoAHW & PAHW_MCD)
    {
       // prepare CD buffer
@@ -661,24 +653,6 @@ static void update_variables(void)
    }
 }
 
-static int EmuScanSlowBegin(unsigned int num)
-{
-   if (!(Pico.video.reg[1]&8)) num += 8;
-
-   //palette in PicoCramHigh ?
-   HighCol = (unsigned char *)PicoDraw2FB  + num * 320;
-   memset(HighCol, 0x00, 320);
-
-   return 0;
-}
-
-static int EmuScanSlowEnd(unsigned int num)
-{
-   return 0;
-}
-#include "pspgu.h"
-#include "pspkernel.h"
-
 void retro_run(void)
 {
    bool updated = false;
@@ -695,37 +669,38 @@ void retro_run(void)
          if (input_state_cb(pad, RETRO_DEVICE_JOYPAD, 0, i))
             PicoPad[pad] |= retro_pico_map[i];
 
-   PicoDraw2FB = vout_buf;
    PicoSkipFrame = 0;
 
-   PicoScanBegin = EmuScanSlowBegin;
-   PicoScanEnd = EmuScanSlowEnd;
+//   PicoScanBegin = EmuScanSlowBegin;
+//   PicoScanEnd = EmuScanSlowEnd;
+
+   EmuScanPrepare();
 
    PicoFrame();
 
-   static unsigned int __attribute__((aligned(16))) d_list[256];
-   void* const texture_vram_p = (void*) (0x44200000 - (512 * 256)); // max VRAM address - frame size
+//   static unsigned int __attribute__((aligned(16))) d_list[256];
+//   void* const texture_vram_p = (void*) (0x44200000 - (512 * 256)); // max VRAM address - frame size
 
-   sceKernelDcacheWritebackRange(HighPal,256 * 2);
-   sceKernelDcacheWritebackRange(PicoDraw2FB, 320 * 240 );
+//   sceKernelDcacheWritebackRange(HighPal,256 * 2);
+//   sceKernelDcacheWritebackRange(PicoDraw2FB, 320 * 240 );
 
-   sceGuStart(GU_DIRECT, d_list);
-   sceGuCopyImage(GU_PSM_4444, 0, 0, 160, 240, 160, PicoDraw2FB, 0, 0, 256, texture_vram_p);
+//   sceGuStart(GU_DIRECT, d_list);
+//   sceGuCopyImage(GU_PSM_4444, 0, 0, 160, 240, 160, PicoDraw2FB, 0, 0, 256, texture_vram_p);
 
-   sceGuTexSync();
-   sceGuTexImage(0, 512, 256, 512, texture_vram_p);
-   sceGuTexMode(GU_PSM_T8, 0, 0, GU_FALSE);
-   sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
-   sceGuDisable(GU_BLEND);
-   sceGuClutMode(GU_PSM_5551, 0, 0xFF, 0);
-   sceGuClutLoad(32, HighPal);
+//   sceGuTexSync();
+//   sceGuTexImage(0, 512, 256, 512, texture_vram_p);
+//   sceGuTexMode(GU_PSM_T8, 0, 0, GU_FALSE);
+//   sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
+//   sceGuDisable(GU_BLEND);
+//   sceGuClutMode(GU_PSM_5551, 0, 0xFF, 0);
+//   sceGuClutLoad(32, HighPal);
 
-   sceGuFinish();
+//   sceGuFinish();
 
-   video_cb(texture_vram_p, 320, 240, 1024);
+//   video_cb(texture_vram_p, 320, 240, 1024);
 
-//   video_cb((short*)vout_buf + vout_offset,
-//            vout_width, vout_height, vout_width * 2);
+//   video_cb(((void*)-1), 320, 240, 1024);
+
 }
 
 static void check_system_specs(void)
@@ -762,15 +737,9 @@ void retro_init(void)
    PicoRegionOverride = 0x0;
    PicoCDBuffers = 64;
 
-   vout_width = 320;
-   vout_height = 240;
-   vout_buf = malloc(VOUT_MAX_WIDTH * VOUT_MAX_HEIGHT * 2);
-   PicoDraw2FB = vout_buf;
-
    PicoInit();
-   PicoDrawSetColorFormat(1); // 0=BGR444, 1=RGB555, 2=8bit(HighPal pal)
-   // PicoDrawSetOutFormat(PDF_RGB555, 0);
-   // PicoDrawSetOutBuf(vout_buf, vout_width * 2);
+//   PicoDrawSetColorFormat(1); // 0=BGR444, 1=RGB555, 2=8bit(HighPal pal)
+
 
    PicoMessage = NULL;
    PicoMCDopenTray = NULL;

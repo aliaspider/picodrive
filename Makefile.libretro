@@ -41,6 +41,7 @@ OBJS += pico/sound/sn76496.o pico/sound/ym2612.o
 
 OBJS += libretro.o
 OBJS += libretro_emu.o
+OBJS += platform/psp/asm_utils.o
 CFLAGS += -D__LIBRETRO__
 
 OBJS_BASE := $(OBJS)

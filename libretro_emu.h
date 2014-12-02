@@ -84,6 +84,12 @@ void  emu_startSound(void);
 void  emu_endSound(void);
 void  emu_waitSound(void);
 
+
+/* PSP */
+void vidResetMode(void);
+void EmuScanPrepare(void);
+void clearArea(void);
+
 #ifdef __cplusplus
 } // extern "C"
 #endif
