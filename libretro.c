@@ -581,20 +581,33 @@ void retro_reset(void)
    PicoReset();
 }
 
+#define GBTN_UP         0
+#define GBTN_DOWN       1
+#define GBTN_LEFT       2
+#define GBTN_RIGHT      3
+#define GBTN_B          4
+#define GBTN_C          5
+#define GBTN_A          6
+#define GBTN_START      7
+#define GBTN_Z          8
+#define GBTN_Y          9
+#define GBTN_X          10
+#define GBTN_MODE       11
+
 static const unsigned short retro_pico_map[] =
 {
-   // 1 << GBTN_B,
-   // 1 << GBTN_A,
-   // 1 << GBTN_MODE,
-   // 1 << GBTN_START,
-   // 1 << GBTN_UP,
-   // 1 << GBTN_DOWN,
-   // 1 << GBTN_LEFT,
-   // 1 << GBTN_RIGHT,
-   // 1 << GBTN_C,
-   // 1 << GBTN_Y,
-   // 1 << GBTN_X,
-   // 1 << GBTN_Z,
+    1 << GBTN_B,
+    1 << GBTN_A,
+    1 << GBTN_MODE,
+    1 << GBTN_START,
+    1 << GBTN_UP,
+    1 << GBTN_DOWN,
+    1 << GBTN_LEFT,
+    1 << GBTN_RIGHT,
+    1 << GBTN_C,
+    1 << GBTN_Y,
+    1 << GBTN_X,
+    1 << GBTN_Z,
    0,
 };
 #define RETRO_PICO_MAP_LEN (sizeof(retro_pico_map) / sizeof(retro_pico_map[0]))
@@ -676,6 +689,7 @@ void retro_run(void)
 
    EmuScanPrepare();
 
+//   PicoSkipFrame = 1;
    PicoFrame();
 
 //   static unsigned int __attribute__((aligned(16))) d_list[256];
@@ -698,6 +712,7 @@ void retro_run(void)
 //   sceGuFinish();
 
 //   video_cb(texture_vram_p, 320, 240, 1024);
+
 
 //   video_cb(((void*)-1), 320, 240, 1024);
 
