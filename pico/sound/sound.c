@@ -350,8 +350,7 @@ static int PsndRender(int offset, int length)
    if ((PicoAHW & PAHW_MCD) && (PicoOpt & POPT_EN_MCD_CDDA) &&
          !(Pico_mcd->s68k_regs[0x36] & 1) && (Pico_mcd->scd.Status_CDC & 1))
    {
-      // note: only 44, 22 and 11 kHz supported, with forced stereo
-      int index = Pico_mcd->scd.Cur_Track - 1;
+      // note: only 44, 22 and 11 kHz supported, with forced stereo      
       cdda_raw_update(buf32, length);
    }
 

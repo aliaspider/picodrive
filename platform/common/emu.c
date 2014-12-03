@@ -16,8 +16,6 @@
 #include <pico/patch.h>
 #include <pico/cd/cue.h>
 
-char *PicoConfigFile = "config.cfg";
-currentConfig_t currentConfig, defaultConfig;
 int rom_loaded = 0;
 char noticeMsg[64] = { 0, };
 int state_slot = 0;

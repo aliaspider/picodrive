@@ -291,9 +291,6 @@ static unsigned int disk_get_image_index(void)
 
 static bool disk_set_image_index(unsigned int index)
 {
-   cd_img_type cd_type;
-   int ret;
-
    if (index >= sizeof(disks) / sizeof(disks[0]))
       return false;
 
@@ -381,14 +378,16 @@ static void disk_tray_open(void)
    disk_ejected = 1;
 }
 
-static void disk_tray_close(void)
+static int disk_tray_close(void)
 {
    if (log_cb)
       log_cb(RETRO_LOG_INFO, "cd tray close\n");
    disk_ejected = 0;
+
+   return 1;
 }
 
-
+/*
 static const char* const biosfiles_us[] =
 {
    "us_scd2_9306", "SegaCDBIOS9303", "us_scd1_9210", "bios_CD_U"
@@ -461,10 +460,11 @@ static const char* find_bios(int* region, const char* cd_fname)
 
    return NULL;
 }
+*/
+
 #include "libretro_emu.h"
 bool retro_load_game(const struct retro_game_info* info)
 {
-   static char carthw_path[256];
    size_t i;
 
    enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
@@ -489,16 +489,15 @@ bool retro_load_game(const struct retro_game_info* info)
    disk_count = 1;
    disks[0].fname = strdup(info->path);
 
-   make_system_path(carthw_path, sizeof(carthw_path), "carthw", ".cfg");
 
 
-//   unsigned int rom_size = 0;
-//   unsigned char* rom_data = NULL;
-//   pm_file* rom = pm_open(info->path);
-//   PicoCartUnload();
-//   PicoCartLoad(rom, &rom_data, &rom_size);
-//   pm_close(rom);
-//   rom = NULL;
+   //   unsigned int rom_size = 0;
+   //   unsigned char* rom_data = NULL;
+   //   pm_file* rom = pm_open(info->path);
+   //   PicoCartUnload();
+   //   PicoCartLoad(rom, &rom_data, &rom_size);
+   //   pm_close(rom);
+   //   rom = NULL;
    /* new */
 
    PicoReset();
@@ -522,7 +521,7 @@ bool retro_load_game(const struct retro_game_info* info)
    PsndRerate(0);
 
    g_m68kcontext = &PicoCpuFM68k;
-//   g_m68kcontext = &PicoCpuFS68k;
+   //   g_m68kcontext = &PicoCpuFS68k;
    return true;
 }
 
@@ -596,18 +595,18 @@ void retro_reset(void)
 
 static const unsigned short retro_pico_map[] =
 {
-    1 << GBTN_B,
-    1 << GBTN_A,
-    1 << GBTN_MODE,
-    1 << GBTN_START,
-    1 << GBTN_UP,
-    1 << GBTN_DOWN,
-    1 << GBTN_LEFT,
-    1 << GBTN_RIGHT,
-    1 << GBTN_C,
-    1 << GBTN_Y,
-    1 << GBTN_X,
-    1 << GBTN_Z,
+   1 << GBTN_B,
+   1 << GBTN_A,
+   1 << GBTN_MODE,
+   1 << GBTN_START,
+   1 << GBTN_UP,
+   1 << GBTN_DOWN,
+   1 << GBTN_LEFT,
+   1 << GBTN_RIGHT,
+   1 << GBTN_C,
+   1 << GBTN_Y,
+   1 << GBTN_X,
+   1 << GBTN_Z,
    0,
 };
 #define RETRO_PICO_MAP_LEN (sizeof(retro_pico_map) / sizeof(retro_pico_map[0]))
@@ -684,43 +683,42 @@ void retro_run(void)
 
    PicoSkipFrame = 0;
 
-//   PicoScanBegin = EmuScanSlowBegin;
-//   PicoScanEnd = EmuScanSlowEnd;
+   //   PicoScanBegin = EmuScanSlowBegin;
+   //   PicoScanEnd = EmuScanSlowEnd;
 
    EmuScanPrepare();
 
-//   PicoSkipFrame = 1;
+   //   PicoSkipFrame = 1;
    PicoFrame();
 
-//   static unsigned int __attribute__((aligned(16))) d_list[256];
-//   void* const texture_vram_p = (void*) (0x44200000 - (512 * 256)); // max VRAM address - frame size
+   //   static unsigned int __attribute__((aligned(16))) d_list[256];
+   //   void* const texture_vram_p = (void*) (0x44200000 - (512 * 256)); // max VRAM address - frame size
 
-//   sceKernelDcacheWritebackRange(HighPal,256 * 2);
-//   sceKernelDcacheWritebackRange(PicoDraw2FB, 320 * 240 );
+   //   sceKernelDcacheWritebackRange(HighPal,256 * 2);
+   //   sceKernelDcacheWritebackRange(PicoDraw2FB, 320 * 240 );
 
-//   sceGuStart(GU_DIRECT, d_list);
-//   sceGuCopyImage(GU_PSM_4444, 0, 0, 160, 240, 160, PicoDraw2FB, 0, 0, 256, texture_vram_p);
+   //   sceGuStart(GU_DIRECT, d_list);
+   //   sceGuCopyImage(GU_PSM_4444, 0, 0, 160, 240, 160, PicoDraw2FB, 0, 0, 256, texture_vram_p);
 
-//   sceGuTexSync();
-//   sceGuTexImage(0, 512, 256, 512, texture_vram_p);
-//   sceGuTexMode(GU_PSM_T8, 0, 0, GU_FALSE);
-//   sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
-//   sceGuDisable(GU_BLEND);
-//   sceGuClutMode(GU_PSM_5551, 0, 0xFF, 0);
-//   sceGuClutLoad(32, HighPal);
+   //   sceGuTexSync();
+   //   sceGuTexImage(0, 512, 256, 512, texture_vram_p);
+   //   sceGuTexMode(GU_PSM_T8, 0, 0, GU_FALSE);
+   //   sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
+   //   sceGuDisable(GU_BLEND);
+   //   sceGuClutMode(GU_PSM_5551, 0, 0xFF, 0);
+   //   sceGuClutLoad(32, HighPal);
 
-//   sceGuFinish();
+   //   sceGuFinish();
 
-//   video_cb(texture_vram_p, 320, 240, 1024);
+   //   video_cb(texture_vram_p, 320, 240, 1024);
 
 
-//   video_cb(((void*)-1), 320, 240, 1024);
+   //   video_cb(((void*)-1), 320, 240, 1024);
 
 }
 
 static void check_system_specs(void)
 {
-   /* TODO - set different performance level for 32X - 6 for ARM dynarec, higher for interpreter core */
    unsigned level = 5;
    environ_cb(RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL, &level);
 }
@@ -740,10 +738,10 @@ void retro_init(void)
 
    environ_cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, &disk_control);
 
-//    PicoOpt = POPT_EN_STEREO|POPT_EN_FM|POPT_EN_PSG|POPT_EN_Z80
-//       | POPT_EN_MCD_PCM|POPT_EN_MCD_CDDA|POPT_EN_MCD_GFX
-//   //     | POPT_EN_32X|POPT_EN_PWM
-//       | POPT_ACC_SPRITES|POPT_DIS_32C_BORDER;
+   //    PicoOpt = POPT_EN_STEREO|POPT_EN_FM|POPT_EN_PSG|POPT_EN_Z80
+   //       | POPT_EN_MCD_PCM|POPT_EN_MCD_CDDA|POPT_EN_MCD_GFX
+   //   //     | POPT_EN_32X|POPT_EN_PWM
+   //       | POPT_ACC_SPRITES|POPT_DIS_32C_BORDER;
 
    PicoOpt = 0x0f | POPT_EN_MCD_PCM | POPT_EN_MCD_CDDA | POPT_EN_MCD_GFX |
              POPT_ACC_SPRITES;
@@ -753,17 +751,17 @@ void retro_init(void)
    PicoCDBuffers = 64;
 
    PicoInit();
-//   PicoDrawSetColorFormat(1); // 0=BGR444, 1=RGB555, 2=8bit(HighPal pal)
-
+   //   PicoDrawSetColorFormat(1); // 0=BGR444, 1=RGB555, 2=8bit(HighPal pal)
 
    PicoMessage = NULL;
    PicoMCDopenTray = NULL;
    PicoMCDcloseTray = NULL;
-   // PicoMessage = plat_status_msg_busy_next;
-   // PicoMCDopenTray = disk_tray_open;
-   // PicoMCDcloseTray = disk_tray_close;
+
+   PicoMCDopenTray = disk_tray_open;
+   PicoMCDcloseTray = disk_tray_close;
 
    update_variables();
+   check_system_specs();
 }
 
 void retro_deinit(void)

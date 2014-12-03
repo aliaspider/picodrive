@@ -81,8 +81,6 @@ void PicoSVPWrite8(unsigned int a, unsigned int d, int realsize)
 
 void PicoSVPWrite16(unsigned int a, unsigned int d, int realsize)
 {
-  static int clearing_ram = 0;
-
   // DRAM
   if      ((a & 0xfe0000) == 0x300000)
     *(u16 *)(svp->dram + (a&0x1fffe)) = d;

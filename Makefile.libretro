@@ -5,7 +5,7 @@ AS = psp-as
 AR = psp-ar
 
 CFLAGS += -I../.. -I. -D_ASM_DRAW_C_AMIPS -D_ASM_MEMORY_C -D_ASM_MEMORY_C_AMIPS -D_ASM_MISC_C_AMIPS
-CFLAGS += -Wall -Winline -G0
+CFLAGS += -Wall -Winline -G0 -flto
 
 ifeq ($(DEBUG),1)
 CFLAGS += -g

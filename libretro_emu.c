@@ -13,28 +13,7 @@
 #include <pico/patch.h>
 #include <pico/cd/cue.h>
 
-int rom_loaded = 0;
-char noticeMsg[64] = { 0, };
-int state_slot = 0;
-int config_slot = 0, config_slot_current = 0;
-char loadedRomFName[512] = { 0, };
-int kb_combo_keys = 0, kb_combo_acts =
-                       0; // keys and actions which need button combos
-int pico_inp_mode = 0;
-
-unsigned char* movie_data = NULL;
-static int movie_size = 0;
-
-// provided by platform code:
-extern void emu_noticeMsgUpdated(void);
-extern int  emu_getMainDir(char* dst, int len);
-extern void menu_romload_prepare(const char* rom_name);
-extern void menu_romload_end(void);
-
-void emu_noticeMsgUpdated(void)
-{
-   lprintf("%s\n", noticeMsg);
-}
+static char loadedRomFName[512] = { 0, };
 
 // utilities
 static void strlwr_(char* string)
@@ -55,17 +34,17 @@ static void get_ext(char* file, char* ext)
    strlwr_(ext);
 }
 
-char* biosfiles_us[] = { "us_scd1_9210", "us_scd2_9306", "SegaCDBIOS9303" };
-char* biosfiles_eu[] = { "eu_mcd1_9210", "eu_mcd2_9306", "eu_mcd2_9303"   };
-char* biosfiles_jp[] = { "jp_mcd1_9112", "jp_mcd1_9111" };
+static char* biosfiles_us[] = { "us_scd1_9210", "us_scd2_9306", "SegaCDBIOS9303" };
+static char* biosfiles_eu[] = { "eu_mcd1_9210", "eu_mcd2_9306", "eu_mcd2_9303"   };
+static char* biosfiles_jp[] = { "jp_mcd1_9112", "jp_mcd1_9111" };
 
-int emu_getMainDir(char *dst, int len)
+static int emu_getMainDir(char* dst, int len)
 {
    if (len > 0) *dst = 0;
    return 0;
 }
 
-int emu_findBios(int region, char** bios_file)
+static int emu_findBios(int region, char** bios_file)
 {
    static char bios_path[1024];
    int i, count;
@@ -97,11 +76,6 @@ int emu_findBios(int region, char** bios_file)
       strcat(bios_path, ".bin");
       f = fopen(bios_path, "rb");
       if (f) break;
-
-      bios_path[strlen(bios_path) - 4] = 0;
-      strcat(bios_path, ".zip");
-      f = fopen(bios_path, "rb");
-      if (f) break;
    }
 
    if (f)
@@ -124,7 +98,7 @@ static unsigned char id_header[0x100];
 
 /* checks if fname points to valid MegaCD image
  * if so, checks for suitable BIOS */
-int emu_cdCheck(int* pregion, char* fname_in)
+static int emu_cdCheck(int* pregion, char* fname_in)
 {
    unsigned char buf[32];
    pm_file* cd_f;
@@ -197,76 +171,11 @@ int emu_cdCheck(int* pregion, char* fname_in)
    return type;
 }
 
-static int extract_text(char* dest, const unsigned char* src, int len, int swab)
+static void emu_shutdownMCD(void)
 {
-   char* p = dest;
-   int i;
-
-   if (swab) swab = 1;
-
-   for (i = len - 1; i >= 0; i--)
-   {
-      if (src[i ^ swab] != ' ') break;
-   }
-   len = i + 1;
-
-   for (i = 0; i < len; i++)
-   {
-      unsigned char s = src[i ^ swab];
-      if (s >= 0x20 && s < 0x7f && s != '#' && s != '|' &&
-            s != '[' && s != ']' && s != '\\')
-         *p++ = s;
-      else
-      {
-         sprintf(p, "\\%02x", s);
-         p += 3;
-      }
-   }
-
-   return p - dest;
-}
-
-char* emu_makeRomId(void)
-{
-   static char id_string[3 + 0xe * 3 + 0x3 * 3 + 0x30 * 3 + 3];
-   int pos, swab = 1;
-
-   if (PicoAHW & PAHW_MCD)
-   {
-      strcpy(id_string, "CD|");
-      swab = 0;
-   }
-   else strcpy(id_string, "MD|");
-   pos = 3;
-
-   pos += extract_text(id_string + pos, id_header + 0x80, 0x0e, swab); // serial
-   id_string[pos] = '|';
-   pos++;
-   pos += extract_text(id_string + pos, id_header + 0xf0, 0x03, swab); // region
-   id_string[pos] = '|';
-   pos++;
-   pos += extract_text(id_string + pos, id_header + 0x50, 0x30,
-                       swab); // overseas name
-   id_string[pos] = 0;
-
-   return id_string;
-}
-
-// buffer must be at least 150 byte long
-void emu_getGameName(char* str150)
-{
-   int ret, swab = (PicoAHW & PAHW_MCD) ? 0 : 1;
-   char* s, *d;
-
-   ret = extract_text(str150, id_header + 0x50, 0x30, swab); // overseas name
-
-   for (s = d = str150 + 1; s < str150 + ret; s++)
-   {
-      if (*s == 0) break;
-      if (*s != ' ' || d[-1] != ' ')
-         *d++ = *s;
-   }
-   *d = 0;
+   if ((PicoAHW & PAHW_MCD) && Pico_mcd != NULL)
+      Stop_CD();
+   PicoAHW &= ~PAHW_MCD;
 }
 
 // note: this function might mangle rom_fname
@@ -292,13 +201,6 @@ int emu_ReloadRom(char* rom_fname)
    }
 
    PicoPatchUnload();
-
-   // check for movie file
-   if (movie_data)
-   {
-      free(movie_data);
-      movie_data = 0;
-   }
 
    emu_shutdownMCD();
 
@@ -346,7 +248,6 @@ int emu_ReloadRom(char* rom_fname)
    }
 
    PicoCartUnload();
-   rom_loaded = 0;
 
    if ((ret = PicoCartLoad(rom, &rom_data, &rom_size)))
    {
@@ -396,42 +297,18 @@ int emu_ReloadRom(char* rom_fname)
       PicoPatchApply();
    }
 
-   // additional movie stuff
-   if (movie_data)
-   {
-      if (movie_data[0x14] == '6')
-         PicoOpt |=  POPT_6BTN_PAD; // 6 button pad
-      else PicoOpt &= ~POPT_6BTN_PAD;
-      PicoOpt |= POPT_DIS_VDP_FIFO; // no VDP fifo timing
-      if (movie_data[0xF] >= 'A')
-      {
-         if (movie_data[0x16] & 0x80)
-            PicoRegionOverride = 8;
-         else
-            PicoRegionOverride = 4;
-         PicoReset();
-         // TODO: bits 6 & 5
-      }
-      movie_data[0x18 + 30] = 0;
-      sprintf(noticeMsg, "MOVIE: %s", (char*) &movie_data[0x18]);
-   }
+   PicoOpt &= ~POPT_DIS_VDP_FIFO;
+   if (Pico.m.pal)
+      lprintf("PAL SYSTEM / 50 FPS\n");
    else
-   {
-      PicoOpt &= ~POPT_DIS_VDP_FIFO;
-      if (Pico.m.pal)
-         strcpy(noticeMsg, "PAL SYSTEM / 50 FPS");
-      else
-         strcpy(noticeMsg, "NTSC SYSTEM / 60 FPS");
-   }
-   emu_noticeMsgUpdated();
+      lprintf("NTSC SYSTEM / 60 FPS\n");
 
    // load SRAM for this ROM
 
-//  emu_SaveLoadGame(1, 1);
+   //  emu_SaveLoadGame(1, 1);
 
    strncpy(loadedRomFName, rom_fname, sizeof(loadedRomFName) - 1);
    loadedRomFName[sizeof(loadedRomFName) - 1] = 0;
-   rom_loaded = 1;
    return 1;
 
 fail:
@@ -439,312 +316,220 @@ fail:
    return 0;
 }
 
+//static void romfname_ext(char* dst, const char* prefix, const char* ext)
+//{
+//   char* p;
+//   int prefix_len = 0;
 
-void emu_shutdownMCD(void)
-{
-   if ((PicoAHW & PAHW_MCD) && Pico_mcd != NULL)
-      Stop_CD();
-   PicoAHW &= ~PAHW_MCD;
-}
+//   // make save filename
+//   p = loadedRomFName + strlen(loadedRomFName) - 1;
+//   for (; p >= loadedRomFName && *p != PATH_SEP_C; p--);
+//   p++;
+//   *dst = 0;
+//   if (prefix)
+//   {
+//      int len = emu_getMainDir(dst, 512);
+//      strcpy(dst + len, prefix);
+//      prefix_len = len + strlen(prefix);
+//   }
 
-static void romfname_ext(char* dst, const char* prefix, const char* ext)
-{
-   char* p;
-   int prefix_len = 0;
-
-   // make save filename
-   p = loadedRomFName + strlen(loadedRomFName) - 1;
-   for (; p >= loadedRomFName && *p != PATH_SEP_C; p--);
-   p++;
-   *dst = 0;
-   if (prefix)
-   {
-      int len = emu_getMainDir(dst, 512);
-      strcpy(dst + len, prefix);
-      prefix_len = len + strlen(prefix);
-   }
-
-   strncpy(dst + prefix_len, p, 511 - prefix_len);
-   dst[511 - 8] = 0;
-   if (dst[strlen(dst) - 4] == '.') dst[strlen(dst) - 4] = 0;
-   if (ext) strcat(dst, ext);
-}
+//   strncpy(dst + prefix_len, p, 511 - prefix_len);
+//   dst[511 - 8] = 0;
+//   if (dst[strlen(dst) - 4] == '.') dst[strlen(dst) - 4] = 0;
+//   if (ext) strcat(dst, ext);
+//}
 
 
-static int try_ropen_file(const char* fname)
-{
-   FILE* f;
+//void emu_setSaveStateCbs(void)
+//{
+//   areaRead  = (arearw*) fread;
+//   areaWrite = (arearw*) fwrite;
+//   areaEof   = (areaeof*) feof;
+//   areaSeek  = (areaseek*) fseek;
+//   areaClose = (areaclose*) fclose;
+//}
 
-   f = fopen(fname, "rb");
-   if (f)
-   {
-      fclose(f);
-      return 1;
-   }
-   return 0;
-}
+//int emu_SaveLoadGame(int load, int sram)
+//{
+//   int ret = 0;
+//   char* saveFname;
 
-char* emu_GetSaveFName(int load, int is_sram, int slot)
-{
-   static char saveFname[512];
-   char ext[16];
+//   // make save filename
+//   saveFname = emu_GetSaveFName(load, sram, state_slot);
+//   if (saveFname == NULL)
+//   {
+//      if (!sram)
+//      {
+//         strcpy(noticeMsg, load ? "LOAD FAILED (missing file)" : "SAVE FAILED  ");
+//         emu_noticeMsgUpdated();
+//      }
+//      return -1;
+//   }
 
-   if (is_sram)
-   {
-      romfname_ext(saveFname, (PicoAHW & 1) ? "brm"PATH_SEP : "srm"PATH_SEP,
-                   (PicoAHW & 1) ? ".brm" : ".srm");
-      if (load)
-      {
-         if (try_ropen_file(saveFname)) return saveFname;
-         // try in current dir..
-         romfname_ext(saveFname, NULL, (PicoAHW & PAHW_MCD) ? ".brm" : ".srm");
-         if (try_ropen_file(saveFname)) return saveFname;
-         return NULL; // give up
-      }
-   }
-   else
-   {
-      ext[0] = 0;
-      if (slot > 0 && slot < 10) sprintf(ext, ".%i", slot);
-      strcat(ext, ".mds");
+//   lprintf("saveLoad (%i, %i): %s\n", load, sram, saveFname);
 
-      romfname_ext(saveFname, "mds" PATH_SEP, ext);
-      if (load)
-      {
-         if (try_ropen_file(saveFname)) return saveFname;
-         romfname_ext(saveFname, NULL, ext);
-         if (try_ropen_file(saveFname)) return saveFname;
-         // no gzipped states, search for non-gzipped
-         return NULL;
-      }
-   }
+//   if (sram)
+//   {
+//      FILE* sramFile;
+//      int sram_size;
+//      unsigned char* sram_data;
+//      int truncate = 1;
+//      if (PicoAHW & PAHW_MCD)
+//      {
+//         if (PicoOpt & POPT_EN_MCD_RAMCART)
+//         {
+//            sram_size = 0x12000;
+//            sram_data = SRam.data;
+//            if (sram_data)
+//               memcpy32((int*)sram_data, (int*)Pico_mcd->bram, 0x2000 / 4);
+//         }
+//         else
+//         {
+//            sram_size = 0x2000;
+//            sram_data = Pico_mcd->bram;
+//            truncate  = 0; // the .brm may contain RAM cart data after normal brm
+//         }
+//      }
+//      else
+//      {
+//         sram_size = SRam.end - SRam.start + 1;
+//         if (Pico.m.sram_reg & 4) sram_size = 0x2000;
+//         sram_data = SRam.data;
+//      }
+//      if (!sram_data) return 0; // SRam forcefully disabled for this game
 
-   return saveFname;
-}
+//      if (load)
+//      {
+//         sramFile = fopen(saveFname, "rb");
+//         if (!sramFile) return -1;
+//         fread(sram_data, 1, sram_size, sramFile);
+//         fclose(sramFile);
+//         if ((PicoAHW & PAHW_MCD) && (PicoOpt & POPT_EN_MCD_RAMCART))
+//            memcpy32((int*)Pico_mcd->bram, (int*)sram_data, 0x2000 / 4);
+//      }
+//      else
+//      {
+//         // sram save needs some special processing
+//         // see if we have anything to save
+//         for (; sram_size > 0; sram_size--)
+//            if (sram_data[sram_size - 1]) break;
 
-int emu_checkSaveFile(int slot)
-{
-   return emu_GetSaveFName(1, 0, slot) ? 1 : 0;
-}
+//         if (sram_size)
+//         {
+//            sramFile = fopen(saveFname, truncate ? "wb" : "r+b");
+//            if (!sramFile) sramFile = fopen(saveFname, "wb"); // retry
+//            if (!sramFile) return -1;
+//            ret = fwrite(sram_data, 1, sram_size, sramFile);
+//            ret = (ret != sram_size) ? -1 : 0;
+//            fclose(sramFile);
+//         }
+//      }
+//      return ret;
+//   }
+//   else
+//   {
+//      void* PmovFile = NULL;
 
-void emu_setSaveStateCbs(void)
-{
-   areaRead  = (arearw*) fread;
-   areaWrite = (arearw*) fwrite;
-   areaEof   = (areaeof*) feof;
-   areaSeek  = (areaseek*) fseek;
-   areaClose = (areaclose*) fclose;
-}
+//      if ((PmovFile = fopen(saveFname, load ? "rb" : "wb")))
+//         emu_setSaveStateCbs();
 
-int emu_SaveLoadGame(int load, int sram)
-{
-   int ret = 0;
-   char* saveFname;
+//      if (PmovFile)
+//      {
+//         ret = PmovState(load ? 6 : 5, PmovFile);
+//         areaClose(PmovFile);
+//         PmovFile = 0;
+//         if (load) Pico.m.dirtyPal = 1;
+//      }
+//      else  ret = -1;
+//      if (!ret)
+//         strcpy(noticeMsg, load ? "GAME LOADED  " : "GAME SAVED        ");
+//      else
+//      {
+//         strcpy(noticeMsg, load ? "LOAD FAILED  " : "SAVE FAILED       ");
+//         ret = -1;
+//      }
 
-   // make save filename
-   saveFname = emu_GetSaveFName(load, sram, state_slot);
-   if (saveFname == NULL)
-   {
-      if (!sram)
-      {
-         strcpy(noticeMsg, load ? "LOAD FAILED (missing file)" : "SAVE FAILED  ");
-         emu_noticeMsgUpdated();
-      }
-      return -1;
-   }
-
-   lprintf("saveLoad (%i, %i): %s\n", load, sram, saveFname);
-
-   if (sram)
-   {
-      FILE* sramFile;
-      int sram_size;
-      unsigned char* sram_data;
-      int truncate = 1;
-      if (PicoAHW & PAHW_MCD)
-      {
-         if (PicoOpt & POPT_EN_MCD_RAMCART)
-         {
-            sram_size = 0x12000;
-            sram_data = SRam.data;
-            if (sram_data)
-               memcpy32((int*)sram_data, (int*)Pico_mcd->bram, 0x2000 / 4);
-         }
-         else
-         {
-            sram_size = 0x2000;
-            sram_data = Pico_mcd->bram;
-            truncate  = 0; // the .brm may contain RAM cart data after normal brm
-         }
-      }
-      else
-      {
-         sram_size = SRam.end - SRam.start + 1;
-         if (Pico.m.sram_reg & 4) sram_size = 0x2000;
-         sram_data = SRam.data;
-      }
-      if (!sram_data) return 0; // SRam forcefully disabled for this game
-
-      if (load)
-      {
-         sramFile = fopen(saveFname, "rb");
-         if (!sramFile) return -1;
-         fread(sram_data, 1, sram_size, sramFile);
-         fclose(sramFile);
-         if ((PicoAHW & PAHW_MCD) && (PicoOpt & POPT_EN_MCD_RAMCART))
-            memcpy32((int*)Pico_mcd->bram, (int*)sram_data, 0x2000 / 4);
-      }
-      else
-      {
-         // sram save needs some special processing
-         // see if we have anything to save
-         for (; sram_size > 0; sram_size--)
-            if (sram_data[sram_size - 1]) break;
-
-         if (sram_size)
-         {
-            sramFile = fopen(saveFname, truncate ? "wb" : "r+b");
-            if (!sramFile) sramFile = fopen(saveFname, "wb"); // retry
-            if (!sramFile) return -1;
-            ret = fwrite(sram_data, 1, sram_size, sramFile);
-            ret = (ret != sram_size) ? -1 : 0;
-            fclose(sramFile);
-         }
-      }
-      return ret;
-   }
-   else
-   {
-      void* PmovFile = NULL;
-
-      if ((PmovFile = fopen(saveFname, load ? "rb" : "wb")))
-         emu_setSaveStateCbs();
-
-      if (PmovFile)
-      {
-         ret = PmovState(load ? 6 : 5, PmovFile);
-         areaClose(PmovFile);
-         PmovFile = 0;
-         if (load) Pico.m.dirtyPal = 1;
-      }
-      else  ret = -1;
-      if (!ret)
-         strcpy(noticeMsg, load ? "GAME LOADED  " : "GAME SAVED        ");
-      else
-      {
-         strcpy(noticeMsg, load ? "LOAD FAILED  " : "SAVE FAILED       ");
-         ret = -1;
-      }
-
-      emu_noticeMsgUpdated();
-      return ret;
-   }
-}
-
-void emu_RunEventsPico(unsigned int events)
-{
-   if (events & (1 << 3))
-   {
-      pico_inp_mode++;
-      if (pico_inp_mode > 2) pico_inp_mode = 0;
-      switch (pico_inp_mode)
-      {
-      case 2:
-         strcpy(noticeMsg, "Input: Pen on Pad      ");
-         break;
-      case 1:
-         strcpy(noticeMsg, "Input: Pen on Storyware");
-         break;
-      case 0:
-         strcpy(noticeMsg, "Input: Joytick         ");
-         PicoPicohw.pen_pos[0] = PicoPicohw.pen_pos[1] = 0x8000;
-         break;
-      }
-      emu_noticeMsgUpdated();
-   }
-   if (events & (1 << 4))
-   {
-      PicoPicohw.page--;
-      if (PicoPicohw.page < 0) PicoPicohw.page = 0;
-      sprintf(noticeMsg, "Page %i                 ", PicoPicohw.page);
-      emu_noticeMsgUpdated();
-   }
-   if (events & (1 << 5))
-   {
-      PicoPicohw.page++;
-      if (PicoPicohw.page > 6) PicoPicohw.page = 6;
-      sprintf(noticeMsg, "Page %i                 ", PicoPicohw.page);
-      emu_noticeMsgUpdated();
-   }
-}
-
+//      emu_noticeMsgUpdated();
+//      return ret;
+//   }
+//}
 
 //PSP
 #define VRAMOFFS_STUFF  0x00100000
 #define VRAM_STUFF      ((void *) (0x44000000+VRAMOFFS_STUFF))
 #define VRAM_CACHED_STUFF   ((void *) (0x04000000+VRAMOFFS_STUFF))
 
-unsigned char *PicoDraw2FB = (unsigned char *)VRAM_CACHED_STUFF + 8; // +8 to be able to skip border with 1 quadword..
+unsigned char* PicoDraw2FB = (unsigned char*)VRAM_CACHED_STUFF +
+                             8;  // +8 to be able to skip border with 1 quadword..
 //#define PICO_PEN_ADJUST_X 4
 //#define PICO_PEN_ADJUST_Y 2
 //static int pico_pen_x = 320/2, pico_pen_y = 240/2;
 
-extern void amips_clut(unsigned short *dst, unsigned char *src, unsigned short *pal, int count);
-extern void amips_clut_6bit(unsigned short *dst, unsigned char *src, unsigned short *pal, int count);
+extern void amips_clut(unsigned short* dst, unsigned char* src,
+                       unsigned short* pal, int count);
+extern void amips_clut_6bit(unsigned short* dst, unsigned char* src,
+                            unsigned short* pal, int count);
 
-static void (*amips_clut_f)(unsigned short *dst, unsigned char *src, unsigned short *pal, int count) = NULL;
+static void (*amips_clut_f)(unsigned short* dst, unsigned char* src,
+                            unsigned short* pal, int count) = NULL;
 
 
 // pointers must be word aligned, gammaa_val = -4..16, black_lvl = {0,1,2}
-void do_pal_convert(unsigned short *dest, unsigned short *src, int gammaa_val, int black_lvl);
+void do_pal_convert(unsigned short* dest, unsigned short* src, int gammaa_val,
+                    int black_lvl);
 
 static unsigned short __attribute__((aligned(16))) localPal[0x100];
 static int dynamic_palette = 0, need_pal_upload = 0, blit_16bit_mode = 0;
 
 static void do_pal_update(int allow_sh, int allow_as)
 {
-   unsigned int *dpal=(void *)localPal;
+   unsigned int* dpal = (void*)localPal;
    int i;
 
    //for (i = 0x3f/2; i >= 0; i--)
-   //	dpal[i] = ((spal[i]&0x000f000f)<< 1)|((spal[i]&0x00f000f0)<<3)|((spal[i]&0x0f000f00)<<4);
+   // dpal[i] = ((spal[i]&0x000f000f)<< 1)|((spal[i]&0x00f000f0)<<3)|((spal[i]&0x0f000f00)<<4);
    do_pal_convert(localPal, Pico.cram, 0, 0);
 
    Pico.m.dirtyPal = 0;
    need_pal_upload = 1;
 
-   if (allow_sh && (Pico.video.reg[0xC]&8)) // shadow/hilight?
+   if (allow_sh && (Pico.video.reg[0xC] & 8)) // shadow/hilight?
    {
       // shadowed pixels
-      for (i = 0x3f/2; i >= 0; i--)
-         dpal[0x20|i] = dpal[0x60|i] = (dpal[i]>>1)&0x7bcf7bcf;
+      for (i = 0x3f / 2; i >= 0; i--)
+         dpal[0x20 | i] = dpal[0x60 | i] = (dpal[i] >> 1) & 0x7bcf7bcf;
       // hilighted pixels
-      for (i = 0x3f; i >= 0; i--) {
-         int t=localPal[i]&0xf79e;t+=0x4208;
-         if (t&0x20) t|=0x1e;
-         if (t&0x800) t|=0x780;
-         if (t&0x10000) t|=0xf000;
-         t&=0xf79e;
-         localPal[0x80|i]=(unsigned short)t;
+      for (i = 0x3f; i >= 0; i--)
+      {
+         int t = localPal[i] & 0xf79e;
+         t += 0x4208;
+         if (t & 0x20) t |= 0x1e;
+         if (t & 0x800) t |= 0x780;
+         if (t & 0x10000) t |= 0xf000;
+         t &= 0xf79e;
+         localPal[0x80 | i] = (unsigned short)t;
       }
       localPal[0xe0] = 0;
       localPal[0xf0] = 0x001f;
    }
    else if (allow_as && (rendstatus & PDRAW_SPR_LO_ON_HI))
-   {
-      memcpy32((int *)dpal+0x80/2, (void *)localPal, 0x40*2/4);
-   }
+      memcpy32((int*)dpal + 0x80 / 2, (void*)localPal, 0x40 * 2 / 4);
 }
 
 
 static void do_slowmode_lines(int line_to)
 {
-   int line = 0, line_len = (Pico.video.reg[12]&1) ? 320 : 256;
-   unsigned short *dst = (unsigned short *)VRAM_STUFF + 512*240/2;
-   unsigned char  *src = (unsigned char  *)VRAM_CACHED_STUFF + 16;
-   if (!(Pico.video.reg[1]&8)) { line = 8; dst += 512*8; src += 512*8; }
+   int line = 0, line_len = (Pico.video.reg[12] & 1) ? 320 : 256;
+   unsigned short* dst = (unsigned short*)VRAM_STUFF + 512 * 240 / 2;
+   unsigned char*  src = (unsigned char*)VRAM_CACHED_STUFF + 16;
+   if (!(Pico.video.reg[1] & 8))
+   {
+      line = 8;
+      dst += 512 * 8;
+      src += 512 * 8;
+   }
 
-   for (; line < line_to; line++, dst+=512, src+=512)
+   for (; line < line_to; line++, dst += 512, src += 512)
       amips_clut_f(dst, src, localPal, line_len);
 }
 
@@ -752,44 +537,47 @@ void EmuScanPrepare(void)
 {
    need_pal_upload = 1;
 
-   HighCol = (unsigned char *)VRAM_CACHED_STUFF + 8;
-   if (!(Pico.video.reg[1]&8)) HighCol += 8*512;
+   HighCol = (unsigned char*)VRAM_CACHED_STUFF + 8;
+   if (!(Pico.video.reg[1] & 8)) HighCol += 8 * 512;
 
    if (dynamic_palette > 0)
       dynamic_palette--;
 
    if (Pico.m.dirtyPal)
       do_pal_update(1, 1);
-   if ((rendstatus & PDRAW_SPR_LO_ON_HI) && !(Pico.video.reg[0xC]&8))
-        amips_clut_f = amips_clut_6bit;
+   if ((rendstatus & PDRAW_SPR_LO_ON_HI) && !(Pico.video.reg[0xC] & 8))
+      amips_clut_f = amips_clut_6bit;
    else amips_clut_f = amips_clut;
 }
 
 static int EmuScanSlowBegin(unsigned int num)
 {
-   if (!(Pico.video.reg[1]&8)) num += 8;
+   if (!(Pico.video.reg[1] & 8)) num += 8;
 
    if (!dynamic_palette)
-      HighCol = (unsigned char *)VRAM_CACHED_STUFF + num * 512 + 8;
+      HighCol = (unsigned char*)VRAM_CACHED_STUFF + num * 512 + 8;
 
    return 0;
 }
 
 static int EmuScanSlowEnd(unsigned int num)
 {
-   if (!(Pico.video.reg[1]&8)) num += 8;
+   if (!(Pico.video.reg[1] & 8)) num += 8;
 
-   if (Pico.m.dirtyPal) {
-      if (!dynamic_palette) {
+   if (Pico.m.dirtyPal)
+   {
+      if (!dynamic_palette)
+      {
          do_slowmode_lines(num);
          dynamic_palette = 3; // last for 2 more frames
       }
       do_pal_update(1, 1);
    }
 
-   if (dynamic_palette) {
-      int line_len = (Pico.video.reg[12]&1) ? 320 : 256;
-      void *dst = (char *)VRAM_STUFF + 512*240 + 512*2*num;
+   if (dynamic_palette)
+   {
+      int line_len = (Pico.video.reg[12] & 1) ? 320 : 256;
+      void* dst = (char*)VRAM_STUFF + 512 * 240 + 512 * 2 * num;
       amips_clut_f(dst, HighCol + 8, localPal, line_len);
    }
 
@@ -806,30 +594,33 @@ static void blitscreen_clut(void)
 
    if (dynamic_palette)
    {
-      if (!blit_16bit_mode) { // the current mode is not 16bit
+      if (!blit_16bit_mode)   // the current mode is not 16bit
+      {
          sceGuTexMode(GU_PSM_5650, 0, 0, 0);
-         sceGuTexImage(0,512,512,512,(char *)VRAM_STUFF + 512*240);
+         sceGuTexImage(0, 512, 512, 512, (char*)VRAM_STUFF + 512 * 240);
 
          blit_16bit_mode = 1;
       }
    }
    else
    {
-      if (blit_16bit_mode) {
-         sceGuClutMode(GU_PSM_5650,0,0xff,0);
-         sceGuTexMode(GU_PSM_T8,0,0,0); // 8-bit image
-         sceGuTexImage(0,512,512,512,(char *)VRAM_STUFF + 16);
+      if (blit_16bit_mode)
+      {
+         sceGuClutMode(GU_PSM_5650, 0, 0xff, 0);
+         sceGuTexMode(GU_PSM_T8, 0, 0, 0); // 8-bit image
+         sceGuTexImage(0, 512, 512, 512, (char*)VRAM_STUFF + 16);
          blit_16bit_mode = 0;
       }
 
-      if ((PicoOpt&0x10) && Pico.m.dirtyPal)
+      if ((PicoOpt & 0x10) && Pico.m.dirtyPal)
          do_pal_update(0, 0);
 
       sceKernelDcacheWritebackAll();
 
-      if (need_pal_upload) {
+      if (need_pal_upload)
+      {
          need_pal_upload = 0;
-         sceGuClutLoad((256/8), localPal); // upload 32*8 entries (256)
+         sceGuClutLoad((256 / 8), localPal); // upload 32*8 entries (256)
       }
    }
    sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGB);
@@ -839,7 +630,7 @@ static void blitscreen_clut(void)
 
    extern retro_video_refresh_t video_cb;
 
-   video_cb(((void*)-1), 320, 240, 1024);
+   video_cb(((void*) - 1), 320, 240, 1024);
 
 }
 
@@ -875,19 +666,19 @@ static void blitscreen_clut(void)
 /* called after rendering is done, but frame emulation is not finished */
 void blit1(void)
 {
-   if (PicoOpt&0x10)
+   if (PicoOpt & 0x10)
    {
       int i;
-      unsigned char *pd;
+      unsigned char* pd;
       // clear top and bottom trash
-      for (pd = PicoDraw2FB+8, i = 8; i > 0; i--, pd += 512)
-         memset32((int *)pd, 0xe0e0e0e0, 320/4);
-      for (pd = PicoDraw2FB+512*232+8, i = 8; i > 0; i--, pd += 512)
-         memset32((int *)pd, 0xe0e0e0e0, 320/4);
+      for (pd = PicoDraw2FB + 8, i = 8; i > 0; i--, pd += 512)
+         memset32((int*)pd, 0xe0e0e0e0, 320 / 4);
+      for (pd = PicoDraw2FB + 512 * 232 + 8, i = 8; i > 0; i--, pd += 512)
+         memset32((int*)pd, 0xe0e0e0e0, 320 / 4);
    }
 
-//   if (PicoAHW & PAHW_PICO)
-//      draw_pico_ptr();
+   //   if (PicoAHW & PAHW_PICO)
+   //      draw_pico_ptr();
 
    blitscreen_clut();
 }
@@ -896,13 +687,13 @@ void blit1(void)
 // clears whole screen or just the notice area (in all buffers)
 void clearArea(void)
 {
-   memset32(VRAM_CACHED_STUFF, 0xe0e0e0e0, 512*240/4);
-   memset32((int *)VRAM_CACHED_STUFF+512*240/4, 0, 512*240*2/4);
+   memset32(VRAM_CACHED_STUFF, 0xe0e0e0e0, 512 * 240 / 4);
+   memset32((int*)VRAM_CACHED_STUFF + 512 * 240 / 4, 0, 512 * 240 * 2 / 4);
 }
 
 void vidResetMode(void)
 {
-    // slow rend.
+   // slow rend.
    PicoDrawSetColorFormat(-1);
    PicoScanBegin = EmuScanSlowBegin;
    PicoScanEnd = EmuScanSlowEnd;
