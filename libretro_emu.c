@@ -750,6 +750,8 @@ static void do_slowmode_lines(int line_to)
 
 void EmuScanPrepare(void)
 {
+   need_pal_upload = 1;
+
    HighCol = (unsigned char *)VRAM_CACHED_STUFF + 8;
    if (!(Pico.video.reg[1]&8)) HighCol += 8*512;
 

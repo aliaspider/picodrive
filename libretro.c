@@ -118,7 +118,7 @@ void retro_get_system_av_info(struct retro_system_av_info* info)
 {
    memset(info, 0, sizeof(*info));
    info->timing.fps            = Pico.m.pal ? 50 : 60;
-   info->timing.sample_rate    = 44100;
+   info->timing.sample_rate    = 22050;
    info->geometry.base_width   = 320;
    info->geometry.base_height  = 240;
    info->geometry.max_width    = 320;
@@ -725,14 +725,14 @@ void retro_init(void)
 
    environ_cb(RETRO_ENVIRONMENT_SET_DISK_CONTROL_INTERFACE, &disk_control);
 
-    PicoOpt = POPT_EN_STEREO|POPT_EN_FM|POPT_EN_PSG|POPT_EN_Z80
-       | POPT_EN_MCD_PCM|POPT_EN_MCD_CDDA|POPT_EN_MCD_GFX
-   //     | POPT_EN_32X|POPT_EN_PWM
-       | POPT_ACC_SPRITES|POPT_DIS_32C_BORDER;
+//    PicoOpt = POPT_EN_STEREO|POPT_EN_FM|POPT_EN_PSG|POPT_EN_Z80
+//       | POPT_EN_MCD_PCM|POPT_EN_MCD_CDDA|POPT_EN_MCD_GFX
+//   //     | POPT_EN_32X|POPT_EN_PWM
+//       | POPT_ACC_SPRITES|POPT_DIS_32C_BORDER;
 
-//   PicoOpt = 0x0f | POPT_EN_MCD_PCM | POPT_EN_MCD_CDDA | POPT_EN_MCD_GFX |
-//             POPT_ACC_SPRITES;
-   PsndRate = 44100;
+   PicoOpt = 0x0f | POPT_EN_MCD_PCM | POPT_EN_MCD_CDDA | POPT_EN_MCD_GFX |
+             POPT_ACC_SPRITES;
+   PsndRate = 22050;
    PicoAutoRgnOrder = 0x184; // US, EU, JP
    PicoRegionOverride = 0x0;
    PicoCDBuffers = 64;
