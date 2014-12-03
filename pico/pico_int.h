@@ -36,22 +36,22 @@ extern "C" {
 extern M68K_CONTEXT PicoCpuFM68k, PicoCpuFS68k;
 #define SekCyclesLeftNoMCD PicoCpuFM68k.io_cycle_counter
 #define SekCyclesLeft \
-	(((PicoAHW&1) && (PicoOpt & POPT_EN_MCD_PSYNC)) ? (SekCycleAim-SekCycleCnt) : SekCyclesLeftNoMCD)
+   (((PicoAHW&1) && (PicoOpt & POPT_EN_MCD_PSYNC)) ? (SekCycleAim-SekCycleCnt) : SekCyclesLeftNoMCD)
 #define SekCyclesLeftS68k \
-	((PicoOpt & POPT_EN_MCD_PSYNC) ? (SekCycleAimS68k-SekCycleCntS68k) : PicoCpuFS68k.io_cycle_counter)
+   ((PicoOpt & POPT_EN_MCD_PSYNC) ? (SekCycleAimS68k-SekCycleCntS68k) : PicoCpuFS68k.io_cycle_counter)
 #define SekSetCyclesLeftNoMCD(c) PicoCpuFM68k.io_cycle_counter=c
 #define SekSetCyclesLeft(c) { \
-	if ((PicoAHW&1) && (PicoOpt & POPT_EN_MCD_PSYNC)) SekCycleCnt=SekCycleAim-(c); else SekSetCyclesLeftNoMCD(c); \
+   if ((PicoAHW&1) && (PicoOpt & POPT_EN_MCD_PSYNC)) SekCycleCnt=SekCycleAim-(c); else SekSetCyclesLeftNoMCD(c); \
 }
 #define SekPc     fm68k_get_pc(&PicoCpuFM68k)
 #define SekPcS68k fm68k_get_pc(&PicoCpuFS68k)
 #define SekSetStop(x) { \
-	PicoCpuFM68k.execinfo &= ~FM68K_HALTED; \
-	if (x) { PicoCpuFM68k.execinfo |= FM68K_HALTED; PicoCpuFM68k.io_cycle_counter = 0; } \
+   PicoCpuFM68k.execinfo &= ~FM68K_HALTED; \
+   if (x) { PicoCpuFM68k.execinfo |= FM68K_HALTED; PicoCpuFM68k.io_cycle_counter = 0; } \
 }
 #define SekSetStopS68k(x) { \
-	PicoCpuFS68k.execinfo &= ~FM68K_HALTED; \
-	if (x) { PicoCpuFS68k.execinfo |= FM68K_HALTED; PicoCpuFS68k.io_cycle_counter = 0; } \
+   PicoCpuFS68k.execinfo &= ~FM68K_HALTED; \
+   if (x) { PicoCpuFS68k.execinfo |= FM68K_HALTED; PicoCpuFS68k.io_cycle_counter = 0; } \
 }
 #define SekIsStoppedS68k() (PicoCpuFS68k.execinfo&FM68K_HALTED)
 #define SekShouldInterrupt fm68k_would_interrupt()
@@ -62,26 +62,26 @@ extern int SekCycleAim; // cycle aim
 extern unsigned int SekCycleCntT; // total cycle counter, updated once per frame
 
 #define SekCyclesReset() { \
-	SekCycleCntT+=SekCycleAim; \
-	SekCycleCnt-=SekCycleAim; \
-	SekCycleAim=0; \
+   SekCycleCntT+=SekCycleAim; \
+   SekCycleCnt-=SekCycleAim; \
+   SekCycleAim=0; \
 }
 #define SekCyclesBurn(c)  SekCycleCnt+=c
 #define SekCyclesDone()  (SekCycleAim-SekCyclesLeft)    // number of cycles done in this frame (can be checked anywhere)
 #define SekCyclesDoneT() (SekCycleCntT+SekCyclesDone()) // total nuber of cycles done for this rom
 
 #define SekEndRun(after) { \
-	SekCycleCnt -= SekCyclesLeft - after; \
-	if(SekCycleCnt < 0) SekCycleCnt = 0; \
-	SekSetCyclesLeft(after); \
+   SekCycleCnt -= SekCyclesLeft - after; \
+   if(SekCycleCnt < 0) SekCycleCnt = 0; \
+   SekSetCyclesLeft(after); \
 }
 
 extern int SekCycleCntS68k;
 extern int SekCycleAimS68k;
 
 #define SekCyclesResetS68k() { \
-	SekCycleCntS68k-=SekCycleAimS68k; \
-	SekCycleAimS68k=0; \
+   SekCycleCntS68k-=SekCycleAimS68k; \
+   SekCycleAimS68k=0; \
 }
 #define SekCyclesDoneS68k()  (SekCycleAimS68k-SekCyclesLeftS68k)
 
@@ -118,74 +118,77 @@ extern int z80_scanline_cycles;  /* cycles done until z80_scanline */
 
 struct PicoVideo
 {
-  unsigned char reg[0x20];
-  unsigned int command;       // 32-bit Command
-  unsigned char pending;      // 1 if waiting for second half of 32-bit command
-  unsigned char type;         // Command type (v/c/vsram read/write)
-  unsigned short addr;        // Read/Write address
-  int status;                 // Status bits
-  unsigned char pending_ints; // pending interrupts: ??VH????
-  signed char lwrite_cnt;     // VDP write count during active display line
-  unsigned short v_counter;   // V-counter
-  unsigned char pad[0x10];
+   unsigned char reg[0x20];
+   unsigned int command;       // 32-bit Command
+   unsigned char pending;      // 1 if waiting for second half of 32-bit command
+   unsigned char type;         // Command type (v/c/vsram read/write)
+   unsigned short addr;        // Read/Write address
+   int status;                 // Status bits
+   unsigned char pending_ints; // pending interrupts: ??VH????
+   signed char lwrite_cnt;     // VDP write count during active display line
+   unsigned short v_counter;   // V-counter
+   unsigned char pad[0x10];
 };
 
 struct PicoMisc
 {
-  unsigned char rotate;
-  unsigned char z80Run;
-  unsigned char padTHPhase[2]; // 02 phase of gamepad TH switches
-  unsigned short scanline;     // 04 0 to 261||311
-  char dirtyPal;               // 06 Is the palette dirty (1 - change @ this frame, 2 - some time before)
-  unsigned char hardware;      // 07 Hardware value for country
-  unsigned char pal;           // 08 1=PAL 0=NTSC
-  unsigned char sram_reg;      // SRAM mode register. bit0: allow read? bit1: deny write? bit2: EEPROM? bit4: detected? (header or by access)
-  unsigned short z80_bank68k;  // 0a
-  unsigned short z80_lastaddr; // this is for Z80 faking
-  unsigned char  z80_fakeval;
-  unsigned char  z80_reset;    // z80 reset held
-  unsigned char  padDelay[2];  // 10 gamepad phase time outs, so we count a delay
-  unsigned short eeprom_addr;  // EEPROM address register
-  unsigned char  eeprom_cycle; // EEPROM SRAM cycle number
-  unsigned char  eeprom_slave; // EEPROM slave word for X24C02 and better SRAMs
-  unsigned char prot_bytes[2]; // simple protection faking
-  unsigned short dma_xfers;    // 18
-  unsigned char pad[2];
-  unsigned int  frame_count;   // 1c for movies and idle det
+   unsigned char rotate;
+   unsigned char z80Run;
+   unsigned char padTHPhase[2]; // 02 phase of gamepad TH switches
+   unsigned short scanline;     // 04 0 to 261||311
+   char dirtyPal;               // 06 Is the palette dirty (1 - change @ this frame, 2 - some time before)
+   unsigned char hardware;      // 07 Hardware value for country
+   unsigned char pal;           // 08 1=PAL 0=NTSC
+   unsigned char
+   sram_reg;      // SRAM mode register. bit0: allow read? bit1: deny write? bit2: EEPROM? bit4: detected? (header or by access)
+   unsigned short z80_bank68k;  // 0a
+   unsigned short z80_lastaddr; // this is for Z80 faking
+   unsigned char  z80_fakeval;
+   unsigned char  z80_reset;    // z80 reset held
+   unsigned char  padDelay[2];  // 10 gamepad phase time outs, so we count a delay
+   unsigned short eeprom_addr;  // EEPROM address register
+   unsigned char  eeprom_cycle; // EEPROM SRAM cycle number
+   unsigned char  eeprom_slave; // EEPROM slave word for X24C02 and better SRAMs
+   unsigned char prot_bytes[2]; // simple protection faking
+   unsigned short dma_xfers;    // 18
+   unsigned char pad[2];
+   unsigned int  frame_count;   // 1c for movies and idle det
 };
 
 // some assembly stuff depend on these, do not touch!
 struct Pico
 {
-  unsigned char ram[0x10000];  // 0x00000 scratch ram
-  unsigned short vram[0x8000]; // 0x10000
-  unsigned char zram[0x2000];  // 0x20000 Z80 ram
-  unsigned char ioports[0x10];
-  unsigned int pad[0x3c];      // unused
-  unsigned short cram[0x40];   // 0x22100
-  unsigned short vsram[0x40];  // 0x22180
+   unsigned char ram[0x10000];  // 0x00000 scratch ram
+   unsigned short vram[0x8000]; // 0x10000
+   unsigned char zram[0x2000];  // 0x20000 Z80 ram
+   unsigned char ioports[0x10];
+   unsigned int pad[0x3c];      // unused
+   unsigned short cram[0x40];   // 0x22100
+   unsigned short vsram[0x40];  // 0x22180
 
-  unsigned char *rom;          // 0x22200
-  unsigned int romsize;        // 0x22204
+   unsigned char* rom;          // 0x22200
+   unsigned int romsize;        // 0x22204
 
-  struct PicoMisc m;
-  struct PicoVideo video;
+   struct PicoMisc m;
+   struct PicoVideo video;
 };
 
 // sram
 struct PicoSRAM
 {
-  unsigned char *data;		// actual data
-  unsigned int start;		// start address in 68k address space
-  unsigned int end;
-  unsigned char unused1;	// 0c: unused
-  unsigned char unused2;
-  unsigned char changed;
-  unsigned char eeprom_type;    // eeprom type: 0: 7bit (24C01), 2: device with 2 addr words (X24C02+), 3: dev with 3 addr words
-  unsigned char eeprom_abits;	// eeprom access must be odd addr for: bit0 ~ cl, bit1 ~ out
-  unsigned char eeprom_bit_cl;	// bit number for cl
-  unsigned char eeprom_bit_in;  // bit number for in
-  unsigned char eeprom_bit_out; // bit number for out
+   unsigned char* data;     // actual data
+   unsigned int start;      // start address in 68k address space
+   unsigned int end;
+   unsigned char unused1;   // 0c: unused
+   unsigned char unused2;
+   unsigned char changed;
+   unsigned char
+   eeprom_type;    // eeprom type: 0: 7bit (24C01), 2: device with 2 addr words (X24C02+), 3: dev with 3 addr words
+   unsigned char
+   eeprom_abits; // eeprom access must be odd addr for: bit0 ~ cl, bit1 ~ out
+   unsigned char eeprom_bit_cl;   // bit number for cl
+   unsigned char eeprom_bit_in;  // bit number for in
+   unsigned char eeprom_bit_out; // bit number for out
 };
 
 // MCD
@@ -195,86 +198,92 @@ struct PicoSRAM
 
 struct mcd_pcm
 {
-	unsigned char control; // reg7
-	unsigned char enabled; // reg8
-	unsigned char cur_ch;
-	unsigned char bank;
-	int pad1;
+   unsigned char control; // reg7
+   unsigned char enabled; // reg8
+   unsigned char cur_ch;
+   unsigned char bank;
+   int pad1;
 
-	struct pcm_chan			// 08, size 0x10
-	{
-		unsigned char regs[8];
-		unsigned int  addr;	// .08: played sample address
-		int pad;
-	} ch[8];
+   struct pcm_chan         // 08, size 0x10
+   {
+      unsigned char regs[8];
+      unsigned int  addr;  // .08: played sample address
+      int pad;
+   } ch[8];
 };
 
 struct mcd_misc
 {
-	unsigned short hint_vector;
-	unsigned char  busreq;
-	unsigned char  s68k_pend_ints;
-	unsigned int   state_flags;	// 04: emu state: reset_pending, dmna_pending
-	unsigned int   counter75hz;
-	unsigned int   pad0;
-	int            timer_int3;	// 10
-	unsigned int   timer_stopwatch;
-	unsigned char  bcram_reg;	// 18: battery-backed RAM cart register
-	unsigned char  pad2;
-	unsigned short pad3;
-	int pad[9];
+   unsigned short hint_vector;
+   unsigned char  busreq;
+   unsigned char  s68k_pend_ints;
+   unsigned int   state_flags;   // 04: emu state: reset_pending, dmna_pending
+   unsigned int   counter75hz;
+   unsigned int   pad0;
+   int            timer_int3; // 10
+   unsigned int   timer_stopwatch;
+   unsigned char  bcram_reg;  // 18: battery-backed RAM cart register
+   unsigned char  pad2;
+   unsigned short pad3;
+   int pad[9];
 };
 
 typedef struct
 {
-	unsigned char bios[0x20000];			// 000000: 128K
-	union {						// 020000: 512K
-		unsigned char prg_ram[0x80000];
-		unsigned char prg_ram_b[4][0x20000];
-	};
-	union {						// 0a0000: 256K
-		struct {
-			unsigned char word_ram2M[0x40000];
-			unsigned char unused0[0x20000];
-		};
-		struct {
-			unsigned char unused1[0x20000];
-			unsigned char word_ram1M[2][0x20000];
-		};
-	};
-	union {						// 100000: 64K
-		unsigned char pcm_ram[0x10000];
-		unsigned char pcm_ram_b[0x10][0x1000];
-	};
-	unsigned char s68k_regs[0x200];			// 110000: GA, not CPU regs
-	unsigned char bram[0x2000];			// 110200: 8K
-	struct mcd_misc m;				// 112200: misc
-	struct mcd_pcm pcm;				// 112240:
-	_scd_toc TOC;					// not to be saved
-	CDD  cdd;
-	CDC  cdc;
-	_scd scd;
-	Rot_Comp rot_comp;
+   unsigned char bios[0x20000];        // 000000: 128K
+   union                   // 020000: 512K
+   {
+      unsigned char prg_ram[0x80000];
+      unsigned char prg_ram_b[4][0x20000];
+   };
+   union                   // 0a0000: 256K
+   {
+      struct
+      {
+         unsigned char word_ram2M[0x40000];
+         unsigned char unused0[0x20000];
+      };
+      struct
+      {
+         unsigned char unused1[0x20000];
+         unsigned char word_ram1M[2][0x20000];
+      };
+   };
+   union                   // 100000: 64K
+   {
+      unsigned char pcm_ram[0x10000];
+      unsigned char pcm_ram_b[0x10][0x1000];
+   };
+   unsigned char s68k_regs[0x200];        // 110000: GA, not CPU regs
+   unsigned char bram[0x2000];         // 110200: 8K
+   struct mcd_misc m;            // 112200: misc
+   struct mcd_pcm pcm;           // 112240:
+   _scd_toc TOC;              // not to be saved
+   CDD  cdd;
+   CDC  cdc;
+   _scd scd;
+   Rot_Comp rot_comp;
 } mcd_state;
 
 #define Pico_mcd ((mcd_state *)Pico.rom)
 
 
 // Area.c
-PICO_INTERNAL void PicoAreaPackCpu(unsigned char *cpu, int is_sub);
-PICO_INTERNAL void PicoAreaUnpackCpu(unsigned char *cpu, int is_sub);
+PICO_INTERNAL void PicoAreaPackCpu(unsigned char* cpu, int is_sub);
+PICO_INTERNAL void PicoAreaUnpackCpu(unsigned char* cpu, int is_sub);
 extern void (*PicoLoadStateHook)(void);
 
 // cd/Area.c
-PICO_INTERNAL int PicoCdSaveState(void *file);
-PICO_INTERNAL int PicoCdLoadState(void *file);
+PICO_INTERNAL int PicoCdSaveState(void* file);
+PICO_INTERNAL int PicoCdLoadState(void* file);
 
-typedef struct {
-	int chunk;
-	int size;
-	void *ptr;
+typedef struct
+{
+   int chunk;
+   int size;
+   void* ptr;
 } carthw_state_chunk;
-extern carthw_state_chunk *carthw_chunks;
+extern carthw_state_chunk* carthw_chunks;
 #define CHUNK_CARTHW 64
 
 // Cart.c
@@ -303,10 +312,11 @@ PICO_INTERNAL void PicoMemResetHooks(void);
 PICO_INTERNAL int PadRead(int i);
 PICO_INTERNAL unsigned char z80_read(unsigned short a);
 PICO_INTERNAL_ASM void z80_write(unsigned int a, unsigned char data);
-PICO_INTERNAL int ym2612_write_local(unsigned int a, unsigned int d, int is_from_z80);
+PICO_INTERNAL int ym2612_write_local(unsigned int a, unsigned int d,
+                                     int is_from_z80);
 extern unsigned int (*PicoRead16Hook)(unsigned int a, int realsize);
-extern void (*PicoWrite8Hook) (unsigned int a,unsigned int d,int realsize);
-extern void (*PicoWrite16Hook)(unsigned int a,unsigned int d,int realsize);
+extern void (*PicoWrite8Hook)(unsigned int a, unsigned int d, int realsize);
+extern void (*PicoWrite16Hook)(unsigned int a, unsigned int d, int realsize);
 
 // cd/Memory.c
 PICO_INTERNAL void PicoMemSetupCD(void);
@@ -340,14 +350,14 @@ PICO_INTERNAL void PicoInitPico(void);
 PICO_INTERNAL void PicoReratePico(void);
 
 // Pico/xpcm.c
-PICO_INTERNAL void PicoPicoPCMUpdate(short *buffer, int length, int stereo);
+PICO_INTERNAL void PicoPicoPCMUpdate(short* buffer, int length, int stereo);
 PICO_INTERNAL void PicoPicoPCMReset(void);
 PICO_INTERNAL void PicoPicoPCMRerate(int xpcm_rate);
 
 // Sek.c
 PICO_INTERNAL void SekInit(void);
 PICO_INTERNAL int  SekReset(void);
-PICO_INTERNAL void SekState(int *data);
+PICO_INTERNAL void SekState(int* data);
 PICO_INTERNAL void SekSetRealTAS(int use_real);
 void SekStepM68k(void);
 void SekInitIdleDet(void);
@@ -360,7 +370,7 @@ PICO_INTERNAL int  SekInterruptS68k(int irq);
 
 // sound/sound.c
 PICO_INTERNAL void cdda_start_play();
-extern short cdda_out_buffer[2*1152];
+extern short cdda_out_buffer[2 * 1152];
 extern int PsndLen_exc_cnt;
 extern int PsndLen_exc_add;
 extern int timer_a_next_oflow, timer_a_step; // in z80 cycles
@@ -390,26 +400,30 @@ void ym2612_unpack_state(void);
 
 
 // VideoPort.c
-PICO_INTERNAL_ASM void PicoVideoWrite(unsigned int a,unsigned short d);
+PICO_INTERNAL_ASM void PicoVideoWrite(unsigned int a, unsigned short d);
 PICO_INTERNAL_ASM unsigned int PicoVideoRead(unsigned int a);
 PICO_INTERNAL_ASM unsigned int PicoVideoRead8(unsigned int a);
-extern int (*PicoDmaHook)(unsigned int source, int len, unsigned short **srcp, unsigned short **limitp);
+extern int (*PicoDmaHook)(unsigned int source, int len, unsigned short** srcp,
+                          unsigned short** limitp);
 
 // Misc.c
 PICO_INTERNAL void SRAMWriteEEPROM(unsigned int d);
 PICO_INTERNAL void SRAMUpdPending(unsigned int a, unsigned int d);
 PICO_INTERNAL_ASM unsigned int SRAMReadEEPROM(void);
-PICO_INTERNAL_ASM void memcpy16(unsigned short *dest, unsigned short *src, int count);
-PICO_INTERNAL_ASM void memcpy16bswap(unsigned short *dest, void *src, int count);
-PICO_INTERNAL_ASM void memcpy32(int *dest, int *src, int count); // 32bit word count
-PICO_INTERNAL_ASM void memset32(int *dest, int c, int count);
+PICO_INTERNAL_ASM void memcpy16(unsigned short* dest, unsigned short* src,
+                                int count);
+PICO_INTERNAL_ASM void memcpy16bswap(unsigned short* dest, void* src,
+                                     int count);
+PICO_INTERNAL_ASM void memcpy32(int* dest, int* src,
+                                int count); // 32bit word count
+PICO_INTERNAL_ASM void memset32(int* dest, int c, int count);
 
 // cd/Misc.c
-PICO_INTERNAL_ASM void wram_2M_to_1M(unsigned char *m);
-PICO_INTERNAL_ASM void wram_1M_to_2M(unsigned char *m);
+PICO_INTERNAL_ASM void wram_2M_to_1M(unsigned char* m);
+PICO_INTERNAL_ASM void wram_1M_to_2M(unsigned char* m);
 
 // cd/buffering.c
-PICO_INTERNAL void PicoCDBufferRead(void *dest, int lba);
+PICO_INTERNAL void PicoCDBufferRead(void* dest, int lba);
 
 // sound/sound.c
 PICO_INTERNAL void PsndReset(void);
@@ -418,8 +432,8 @@ PICO_INTERNAL void PsndClear(void);
 PICO_INTERNAL void PsndGetSamples(int y);
 // z80 functionality wrappers
 PICO_INTERNAL void z80_init(void);
-PICO_INTERNAL void z80_pack(unsigned char *data);
-PICO_INTERNAL void z80_unpack(unsigned char *data);
+PICO_INTERNAL void z80_pack(unsigned char* data);
+PICO_INTERNAL void z80_unpack(unsigned char* data);
 PICO_INTERNAL void z80_reset(void);
 extern int PsndDacLine;
 
@@ -451,12 +465,12 @@ extern int PsndDacLine;
 
 #if EL_LOGMASK
 #ifndef lprintf
-extern void lprintf(const char *fmt, ...);
+extern void lprintf(const char* fmt, ...);
 #endif
 #define elprintf(w,f,...) \
 { \
-	if ((w) & EL_LOGMASK) \
-		lprintf("%05i:%03i: " f "\n",Pico.m.frame_count,Pico.m.scanline,##__VA_ARGS__); \
+   if ((w) & EL_LOGMASK) \
+      lprintf("%05i:%03i: " f "\n",Pico.m.frame_count,Pico.m.scanline,##__VA_ARGS__); \
 }
 #elif defined(_MSC_VER)
 #define elprintf

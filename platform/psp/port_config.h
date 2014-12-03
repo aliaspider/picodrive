@@ -24,7 +24,7 @@
 extern void blit1(void);
 #define DRAW_FINISH_FUNC blit1
 //#endif
-#define CAN_HANDLE_240_LINES	1
+#define CAN_HANDLE_240_LINES  1
 
 // logging emu events
 #define EL_LOGMASK (EL_STATUS|EL_IDLE) // (EL_STATUS|EL_ANOMALY|EL_UIO|EL_SRAMIO) // xffff
@@ -39,7 +39,7 @@ extern void blit1(void);
 #define PATH_SEP_C    '/'
 
 #ifdef __LIBRETRO__
-void lprintf(const char *fmt, ...);
+void lprintf(const char* fmt, ...);
 #elif defined(PSP)
 #include <stdio.h>
 #include "psp.h"

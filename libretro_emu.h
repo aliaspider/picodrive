@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-int  emu_ReloadRom(char *rom_fname);
+int  emu_ReloadRom(char* rom_fname);
 void EmuScanPrepare(void);
 void clearArea(void);
 void vidResetMode(void);

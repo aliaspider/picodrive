@@ -17,59 +17,60 @@ extern "C" {
 #endif
 
 
-#define INT_TO_BCDB(c)										\
+#define INT_TO_BCDB(c)                             \
 ((c) > 99)?(0x99):((((c) / 10) << 4) + ((c) % 10));
 
-#define INT_TO_BCDW(c)										\
+#define INT_TO_BCDW(c)                             \
 ((c) > 99)?(0x0909):((((c) / 10) << 8) + ((c) % 10));
 
-#define BCDB_TO_INT(c)										\
+#define BCDB_TO_INT(c)                             \
 (((c) >> 4) * 10) + ((c) & 0xF);
 
-#define BCDW_TO_INT(c)										\
+#define BCDW_TO_INT(c)                             \
 (((c) >> 8) * 10) + ((c) & 0xF);
 
 
 typedef struct
 {
-  unsigned char M;
-  unsigned char S;
-  unsigned char F;
+   unsigned char M;
+   unsigned char S;
+   unsigned char F;
 } _msf;
 
 typedef struct
 {
-//	unsigned char Type; // always 1 (data) for 1st track, 0 (audio) for others
-//	unsigned char Num; // unused
-	_msf MSF;
-	//
-	char ftype; // TYPE_ISO, TYPE_BIN, TYPE_MP3
-	void *F;
-	int Length;
-	int Offset;  // sector offset, when single file is used for multiple virtual tracks
-	short KBtps; // kbytes per sec for mp3s (bitrate / 1000 / 8)
-	short pad;
+   // unsigned char Type; // always 1 (data) for 1st track, 0 (audio) for others
+   // unsigned char Num; // unused
+   _msf MSF;
+   //
+   char ftype; // TYPE_ISO, TYPE_BIN, TYPE_MP3
+   void* F;
+   int Length;
+   int Offset;  // sector offset, when single file is used for multiple virtual tracks
+   short KBtps; // kbytes per sec for mp3s (bitrate / 1000 / 8)
+   short pad;
 } _scd_track;
 
 typedef struct
 {
-//	unsigned char First_Track; // always 1
-	_scd_track Tracks[100];
-	unsigned int Last_Track;
+   // unsigned char First_Track; // always 1
+   _scd_track Tracks[100];
+   unsigned int Last_Track;
 } _scd_toc;
 
-typedef struct {
-	unsigned int Status_CDD;
-	unsigned int Status_CDC;
-	int Cur_LBA;
-	unsigned int Cur_Track;
-	int File_Add_Delay;
-	char CDD_Complete;
-	int pad[6];
+typedef struct
+{
+   unsigned int Status_CDD;
+   unsigned int Status_CDC;
+   int Cur_LBA;
+   unsigned int Cur_Track;
+   int File_Add_Delay;
+   char CDD_Complete;
+   int pad[6];
 } _scd;
 
 
-PICO_INTERNAL void LBA_to_MSF(int lba, _msf *MSF);
+PICO_INTERNAL void LBA_to_MSF(int lba, _msf* MSF);
 PICO_INTERNAL int  Track_to_LBA(int track);
 
 // moved to pico.h

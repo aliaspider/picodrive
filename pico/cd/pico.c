@@ -4,153 +4,166 @@
 #include "../pico_int.h"
 #include "../sound/ym2612.h"
 
-extern unsigned char formatted_bram[4*0x10];
+extern unsigned char formatted_bram[4 * 0x10];
 extern unsigned int s68k_poll_adclk;
 
 void (*PicoMCDopenTray)(void) = NULL;
-int  (*PicoMCDcloseTray)(void) = NULL;
+int (*PicoMCDcloseTray)(void) = NULL;
 
 
 PICO_INTERNAL void PicoInitMCD(void)
 {
-  SekInitS68k();
-  Init_CD_Driver();
+   SekInitS68k();
+   Init_CD_Driver();
 }
 
 PICO_INTERNAL void PicoExitMCD(void)
 {
-  End_CD_Driver();
+   End_CD_Driver();
 }
 
 PICO_INTERNAL void PicoPowerMCD(void)
 {
-  int fmt_size = sizeof(formatted_bram);
-  memset(Pico_mcd->prg_ram,    0, sizeof(Pico_mcd->prg_ram));
-  memset(Pico_mcd->word_ram2M, 0, sizeof(Pico_mcd->word_ram2M));
-  memset(Pico_mcd->pcm_ram,    0, sizeof(Pico_mcd->pcm_ram));
-  memset(Pico_mcd->bram, 0, sizeof(Pico_mcd->bram));
-  memcpy(Pico_mcd->bram + sizeof(Pico_mcd->bram) - fmt_size, formatted_bram, fmt_size);
+   int fmt_size = sizeof(formatted_bram);
+   memset(Pico_mcd->prg_ram,    0, sizeof(Pico_mcd->prg_ram));
+   memset(Pico_mcd->word_ram2M, 0, sizeof(Pico_mcd->word_ram2M));
+   memset(Pico_mcd->pcm_ram,    0, sizeof(Pico_mcd->pcm_ram));
+   memset(Pico_mcd->bram, 0, sizeof(Pico_mcd->bram));
+   memcpy(Pico_mcd->bram + sizeof(Pico_mcd->bram) - fmt_size, formatted_bram,
+          fmt_size);
 }
 
 PICO_INTERNAL int PicoResetMCD(void)
 {
-  memset(Pico_mcd->s68k_regs, 0, sizeof(Pico_mcd->s68k_regs));
-  memset(&Pico_mcd->pcm, 0, sizeof(Pico_mcd->pcm));
-  memset(&Pico_mcd->m, 0, sizeof(Pico_mcd->m));
+   memset(Pico_mcd->s68k_regs, 0, sizeof(Pico_mcd->s68k_regs));
+   memset(&Pico_mcd->pcm, 0, sizeof(Pico_mcd->pcm));
+   memset(&Pico_mcd->m, 0, sizeof(Pico_mcd->m));
 
-  *(unsigned int *)(Pico_mcd->bios + 0x70) = 0xffffffff; // reset hint vector (simplest way to implement reg6)
-  Pico_mcd->m.state_flags |= 1; // s68k reset pending
-  Pico_mcd->s68k_regs[3] = 1; // 2M word RAM mode with m68k access after reset
+   *(unsigned int*)(Pico_mcd->bios + 0x70) =
+      0xffffffff;  // reset hint vector (simplest way to implement reg6)
+   Pico_mcd->m.state_flags |= 1; // s68k reset pending
+   Pico_mcd->s68k_regs[3] = 1; // 2M word RAM mode with m68k access after reset
 
-  Reset_CD();
-  LC89510_Reset();
-  gfx_cd_reset();
-  PicoMemResetCD(1);
+   Reset_CD();
+   LC89510_Reset();
+   gfx_cd_reset();
+   PicoMemResetCD(1);
 #ifdef _ASM_CD_MEMORY_C
-  //PicoMemResetCDdecode(1); // don't have to call this in 2M mode
+   //PicoMemResetCDdecode(1); // don't have to call this in 2M mode
 #endif
 
-  // use SRam.data for RAM cart
-  if (PicoOpt&POPT_EN_MCD_RAMCART) {
-    if (SRam.data == NULL)
-      SRam.data = calloc(1, 0x12000);
-  }
-  else if (SRam.data != NULL) {
-    free(SRam.data);
-    SRam.data = NULL;
-  }
-  SRam.start = SRam.end = 0; // unused
+   // use SRam.data for RAM cart
+   if (PicoOpt & POPT_EN_MCD_RAMCART)
+   {
+      if (SRam.data == NULL)
+         SRam.data = calloc(1, 0x12000);
+   }
+   else if (SRam.data != NULL)
+   {
+      free(SRam.data);
+      SRam.data = NULL;
+   }
+   SRam.start = SRam.end = 0; // unused
 
-  return 0;
+   return 0;
 }
 
 static __inline void SekRunM68k(int cyc)
 {
-  int cyc_do;
-  SekCycleAim+=cyc;
-  if ((cyc_do=SekCycleAim-SekCycleCnt) <= 0) return;
-  g_m68kcontext=&PicoCpuFM68k;
-  SekCycleCnt+=fm68k_emulate(cyc_do, 0, 0);
+   int cyc_do;
+   SekCycleAim += cyc;
+   if ((cyc_do = SekCycleAim - SekCycleCnt) <= 0) return;
+   g_m68kcontext = &PicoCpuFM68k;
+   SekCycleCnt += fm68k_emulate(cyc_do, 0, 0);
 }
 
 static __inline void SekRunS68k(int cyc)
 {
-  int cyc_do;
-  SekCycleAimS68k+=cyc;
-  if ((cyc_do=SekCycleAimS68k-SekCycleCntS68k) <= 0) return;
-  g_m68kcontext=&PicoCpuFS68k;
-  SekCycleCntS68k+=fm68k_emulate(cyc_do, 0, 0);
+   int cyc_do;
+   SekCycleAimS68k += cyc;
+   if ((cyc_do = SekCycleAimS68k - SekCycleCntS68k) <= 0) return;
+   g_m68kcontext = &PicoCpuFS68k;
+   SekCycleCntS68k += fm68k_emulate(cyc_do, 0, 0);
 }
 
 static __inline void SekRunPS(int cyc_m68k, int cyc_s68k)
 {
-  SekCycleAim+=cyc_m68k;
-  SekCycleAimS68k+=cyc_s68k;
-  fm68k_emulate(0, 1, 0);
+   SekCycleAim += cyc_m68k;
+   SekCycleAimS68k += cyc_s68k;
+   fm68k_emulate(0, 1, 0);
 }
 
 
 static __inline void check_cd_dma(void)
 {
-	int ddx;
+   int ddx;
 
-	if (!(Pico_mcd->scd.Status_CDC & 0x08)) return;
+   if (!(Pico_mcd->scd.Status_CDC & 0x08)) return;
 
-	ddx = Pico_mcd->s68k_regs[4] & 7;
-	if (ddx <  2) return; // invalid
-	if (ddx <  4) {
-		Pico_mcd->s68k_regs[4] |= 0x40; // Data set ready in host port
-		return;
-	}
-	if (ddx == 6) return; // invalid
+   ddx = Pico_mcd->s68k_regs[4] & 7;
+   if (ddx <  2) return; // invalid
+   if (ddx <  4)
+   {
+      Pico_mcd->s68k_regs[4] |= 0x40; // Data set ready in host port
+      return;
+   }
+   if (ddx == 6) return; // invalid
 
-	Update_CDC_TRansfer(ddx); // now go and do the actual transfer
+   Update_CDC_TRansfer(ddx); // now go and do the actual transfer
 }
 
 static __inline void update_chips(void)
 {
-	int counter_timer, int3_set;
-	int counter75hz_lim = Pico.m.pal ? 2080 : 2096;
+   int counter_timer, int3_set;
+   int counter75hz_lim = Pico.m.pal ? 2080 : 2096;
 
-	// 75Hz CDC update
-	if ((Pico_mcd->m.counter75hz+=10) >= counter75hz_lim) {
-		Pico_mcd->m.counter75hz -= counter75hz_lim;
-		Check_CD_Command();
-	}
+   // 75Hz CDC update
+   if ((Pico_mcd->m.counter75hz += 10) >= counter75hz_lim)
+   {
+      Pico_mcd->m.counter75hz -= counter75hz_lim;
+      Check_CD_Command();
+   }
 
-	// update timers
-	counter_timer = Pico.m.pal ? 0x21630 : 0x2121c; // 136752 : 135708;
-	Pico_mcd->m.timer_stopwatch += counter_timer;
-	if ((int3_set = Pico_mcd->s68k_regs[0x31])) {
-		Pico_mcd->m.timer_int3 -= counter_timer;
-		if (Pico_mcd->m.timer_int3 < 0) {
-			if (Pico_mcd->s68k_regs[0x33] & (1<<3)) {
-				elprintf(EL_INTS, "s68k: timer irq 3");
-				SekInterruptS68k(3);
-				Pico_mcd->m.timer_int3 += int3_set << 16;
-			}
-			// is this really what happens if irq3 is masked out?
-			Pico_mcd->m.timer_int3 &= 0xffffff;
-		}
-	}
+   // update timers
+   counter_timer = Pico.m.pal ? 0x21630 : 0x2121c; // 136752 : 135708;
+   Pico_mcd->m.timer_stopwatch += counter_timer;
+   if ((int3_set = Pico_mcd->s68k_regs[0x31]))
+   {
+      Pico_mcd->m.timer_int3 -= counter_timer;
+      if (Pico_mcd->m.timer_int3 < 0)
+      {
+         if (Pico_mcd->s68k_regs[0x33] & (1 << 3))
+         {
+            elprintf(EL_INTS, "s68k: timer irq 3");
+            SekInterruptS68k(3);
+            Pico_mcd->m.timer_int3 += int3_set << 16;
+         }
+         // is this really what happens if irq3 is masked out?
+         Pico_mcd->m.timer_int3 &= 0xffffff;
+      }
+   }
 
-	// update gfx chip
-	if (Pico_mcd->rot_comp.Reg_58 & 0x8000)
-		gfx_cd_update();
+   // update gfx chip
+   if (Pico_mcd->rot_comp.Reg_58 & 0x8000)
+      gfx_cd_update();
 
-	// delayed setting of DMNA bit (needed for Silpheed)
-	if (Pico_mcd->m.state_flags & 2) {
-		Pico_mcd->m.state_flags &= ~2;
-		if (!(Pico_mcd->s68k_regs[3] & 4)) {
-			Pico_mcd->s68k_regs[3] |=  2;
-			Pico_mcd->s68k_regs[3] &= ~1;
+   // delayed setting of DMNA bit (needed for Silpheed)
+   if (Pico_mcd->m.state_flags & 2)
+   {
+      Pico_mcd->m.state_flags &= ~2;
+      if (!(Pico_mcd->s68k_regs[3] & 4))
+      {
+         Pico_mcd->s68k_regs[3] |=  2;
+         Pico_mcd->s68k_regs[3] &= ~1;
 #ifdef USE_POLL_DETECT
-			if ((s68k_poll_adclk&0xfe) == 2) {
-				SekSetStopS68k(0); s68k_poll_adclk = 0;
-			}
+         if ((s68k_poll_adclk & 0xfe) == 2)
+         {
+            SekSetStopS68k(0);
+            s68k_poll_adclk = 0;
+         }
 #endif
-		}
-	}
+      }
+   }
 }
 
 
@@ -160,10 +173,10 @@ static __inline void update_chips(void)
 
 PICO_INTERNAL void PicoFrameMCD(void)
 {
-  if (!(PicoOpt&POPT_ALT_RENDERER))
-    PicoFrameStart();
+   if (!(PicoOpt & POPT_ALT_RENDERER))
+      PicoFrameStart();
 
-  PicoFrameHints();
+   PicoFrameHints();
 }
 
 

@@ -22,9 +22,9 @@ extern "C" {
 #endif
 
 // external funcs for Sega/Mega CD
-extern int  mp3_get_bitrate(FILE *f, int size);
-extern void mp3_start_play(FILE *f, int pos);
-extern void mp3_update(int *buffer, int length, int stereo);
+extern int  mp3_get_bitrate(FILE* f, int size);
+extern void mp3_start_play(FILE* f, int pos);
+extern void mp3_update(int* buffer, int length, int stereo);
 
 // Pico.c
 #define POPT_EN_FM          (1<< 0) // 00 000x
@@ -54,9 +54,12 @@ extern int PicoOpt; // bitfield
 #define PAHW_PICO (1<<3)
 extern int PicoAHW;            // Pico active hw
 extern int PicoVer;
-extern int PicoSkipFrame;      // skip rendering frame, but still do sound (if enabled) and emulation stuff
-extern int PicoRegionOverride; // override the region detection 0: auto, 1: Japan NTSC, 2: Japan PAL, 4: US, 8: Europe
-extern int PicoAutoRgnOrder;   // packed priority list of regions, for example 0x148 means this detection order: EUR, USA, JAP
+extern int
+PicoSkipFrame;      // skip rendering frame, but still do sound (if enabled) and emulation stuff
+extern int
+PicoRegionOverride; // override the region detection 0: auto, 1: Japan NTSC, 2: Japan PAL, 4: US, 8: Europe
+extern int
+PicoAutoRgnOrder;   // packed priority list of regions, for example 0x148 means this detection order: EUR, USA, JAP
 extern int PicoSVPCycles;
 void PicoInit(void);
 void PicoExit(void);
@@ -65,50 +68,57 @@ int  PicoReset(void);
 void PicoFrame(void);
 void PicoFrameDrawOnly(void);
 extern int PicoPad[2]; // Joypads, format is MXYZ SACB RLDU
-extern void (*PicoWriteSound)(int len); // called once per frame at the best time to send sound buffer (PsndOut) to hardware
-extern void (*PicoMessage)(const char *msg); // callback to output text message from emu
+extern void (*PicoWriteSound)(int
+                              len); // called once per frame at the best time to send sound buffer (PsndOut) to hardware
+extern void (*PicoMessage)(const char*
+                           msg); // callback to output text message from emu
 typedef enum { PI_ROM, PI_ISPAL, PI_IS40_CELL, PI_IS240_LINES } pint_t;
-typedef union { int vint; void *vptr; } pint_ret_t;
-void PicoGetInternal(pint_t which, pint_ret_t *ret);
+typedef union
+{
+   int vint;
+   void* vptr;
+} pint_ret_t;
+void PicoGetInternal(pint_t which, pint_ret_t* ret);
 
 // cd/Pico.c
 extern void (*PicoMCDopenTray)(void);
-extern int  (*PicoMCDcloseTray)(void);
+extern int (*PicoMCDcloseTray)(void);
 extern int PicoCDBuffers;
 
 // Pico/Pico.c
 #define XPCM_BUFFER_SIZE (320+160)
 typedef struct
 {
-	int pen_pos[2];
-	int page;
-	// internal
-	int fifo_bytes;      // bytes in FIFO
-	int fifo_bytes_prev;
-	int fifo_line_bytes; // float part, << 16
-	int line_counter;
-	unsigned short r1, r12;
-	unsigned char xpcm_buffer[XPCM_BUFFER_SIZE+4];
-	unsigned char *xpcm_ptr;
+   int pen_pos[2];
+   int page;
+   // internal
+   int fifo_bytes;      // bytes in FIFO
+   int fifo_bytes_prev;
+   int fifo_line_bytes; // float part, << 16
+   int line_counter;
+   unsigned short r1, r12;
+   unsigned char xpcm_buffer[XPCM_BUFFER_SIZE + 4];
+   unsigned char* xpcm_ptr;
 } picohw_state;
 extern picohw_state PicoPicohw;
 
 // Area.c
-typedef size_t (arearw)(void *p, size_t _size, size_t _n, void *file);
-typedef size_t (areaeof)(void *file);
-typedef int    (areaseek)(void *file, long offset, int whence);
-typedef int    (areaclose)(void *file);
+typedef size_t (arearw)(void* p, size_t _size, size_t _n, void* file);
+typedef size_t (areaeof)(void* file);
+typedef int (areaseek)(void* file, long offset, int whence);
+typedef int (areaclose)(void* file);
 // Save or load the state from PmovFile:
-int PmovState(int PmovAction, void *PmovFile); // &1=for reading &2=for writing &4=volatile &8=non-volatile
-extern arearw  *areaRead;  // external read and write function pointers for
-extern arearw  *areaWrite; // gzip save state ability
-extern areaeof *areaEof;
-extern areaseek *areaSeek;
-extern areaclose *areaClose;
-extern void (*PicoStateProgressCB)(const char *str);
+int PmovState(int PmovAction,
+              void* PmovFile); // &1=for reading &2=for writing &4=volatile &8=non-volatile
+extern arearw*  areaRead;  // external read and write function pointers for
+extern arearw*  areaWrite; // gzip save state ability
+extern areaeof* areaEof;
+extern areaseek* areaSeek;
+extern areaclose* areaClose;
+extern void (*PicoStateProgressCB)(const char* str);
 
 // cd/Area.c
-int  PicoCdLoadStateGfx(void *file);
+int  PicoCdLoadStateGfx(void* file);
 
 // cd/buffering.c
 void PicoCDBufferInit(void);
@@ -116,41 +126,42 @@ void PicoCDBufferFree(void);
 void PicoCDBufferFlush(void);
 
 // cd/cd_sys.c
-int Insert_CD(char *cdimg_name, int type);
+int Insert_CD(char* cdimg_name, int type);
 void Stop_CD(void); // releases all resources taken when CD game was started.
 
 // Cart.c
 
 typedef struct
 {
-	void *file;		/* file handle */
-	void *param;		/* additional file related field */
-   unsigned int size;	/* size */
+   void* file;    /* file handle */
+   void* param;      /* additional file related field */
+   unsigned int size;   /* size */
 } pm_file;
-pm_file *pm_open(const char *path);
-size_t   pm_read(void *ptr, size_t bytes, pm_file *stream);
-int      pm_seek(pm_file *stream, long offset, int whence);
-int      pm_close(pm_file *fp);
-int PicoCartLoad(pm_file *f,unsigned char **prom,unsigned int *psize);
-int PicoCartInsert(unsigned char *rom,unsigned int romsize);
-void Byteswap(unsigned char *data,int len);
+pm_file* pm_open(const char* path);
+size_t   pm_read(void* ptr, size_t bytes, pm_file* stream);
+int      pm_seek(pm_file* stream, long offset, int whence);
+int      pm_close(pm_file* fp);
+int PicoCartLoad(pm_file* f, unsigned char** prom, unsigned int* psize);
+int PicoCartInsert(unsigned char* rom, unsigned int romsize);
+void Byteswap(unsigned char* data, int len);
 void PicoCartUnload(void);
 extern void (*PicoCartLoadProgressCB)(int percent);
 extern void (*PicoCDLoadProgressCB)(int percent);
 
 // Draw.c
-void PicoDrawSetColorFormat(int which); // 0=BGR444, 1=RGB555, 2=8bit(HighPal pal)
-extern void *DrawLineDest;
+void PicoDrawSetColorFormat(int
+                            which); // 0=BGR444, 1=RGB555, 2=8bit(HighPal pal)
+extern void* DrawLineDest;
 #if OVERRIDE_HIGHCOL
-extern unsigned char *HighCol;
+extern unsigned char* HighCol;
 #else
-extern unsigned char  HighCol[8+320+8];
+extern unsigned char  HighCol[8 + 320 + 8];
 #endif
 extern int (*PicoScanBegin)(unsigned int num);
 extern int (*PicoScanEnd)(unsigned int num);
 // utility
 #ifdef _ASM_DRAW_C
-void vidConvCpyRGB565(void *to, void *from, int pixels);
+void vidConvCpyRGB565(void* to, void* from, int pixels);
 #endif
 void PicoDoHighPal555(int sh);
 extern int PicoDrawMask;
@@ -172,22 +183,28 @@ extern unsigned short HighPal[0x100];
 
 // Draw2.c
 // stuff below is optional
-extern unsigned char  *PicoDraw2FB;  // buffer for fast renderer in format (8+320)x(8+224+8) (eights for borders)
-extern unsigned short *PicoCramHigh; // pointer to CRAM buff (0x40 shorts), converted to native device color (works only with 16bit for now)
-extern void (*PicoPrepareCram)();    // prepares PicoCramHigh for renderer to use
+extern unsigned char*
+PicoDraw2FB;  // buffer for fast renderer in format (8+320)x(8+224+8) (eights for borders)
+extern unsigned short*
+PicoCramHigh; // pointer to CRAM buff (0x40 shorts), converted to native device color (works only with 16bit for now)
+extern void (*PicoPrepareCram)
+();    // prepares PicoCramHigh for renderer to use
 
 // sound.c
-extern int PsndRate,PsndLen;
-extern short *PsndOut;
-extern void (*PsndMix_32_to_16l)(short *dest, int *src, int count);
+extern int PsndRate, PsndLen;
+extern short* PsndOut;
+extern void (*PsndMix_32_to_16l)(short* dest, int* src, int count);
 void PsndRerate(int preserve_state);
 
 // Utils.c
 extern int PicuAnd;
-int PicuQuick(unsigned short *dest,unsigned short *src);
-int PicuShrink(unsigned short *dest,int destLen,unsigned short *src,int srcLen);
-int PicuShrinkReverse(unsigned short *dest,int destLen,unsigned short *src,int srcLen);
-int PicuMerge(unsigned short *dest,int destLen,unsigned short *src,int srcLen);
+int PicuQuick(unsigned short* dest, unsigned short* src);
+int PicuShrink(unsigned short* dest, int destLen, unsigned short* src,
+               int srcLen);
+int PicuShrinkReverse(unsigned short* dest, int destLen, unsigned short* src,
+                      int srcLen);
+int PicuMerge(unsigned short* dest, int destLen, unsigned short* src,
+              int srcLen);
 
 #ifdef __cplusplus
 } // End of extern "C"

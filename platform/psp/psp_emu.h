@@ -6,16 +6,17 @@
 
 
 // engine states
-enum TPicoGameState {
-	PGS_Paused = 1,
-	PGS_Running,
-	PGS_Quit,
-	PGS_KeyConfig,
-	PGS_ReloadRom,
-	PGS_Menu,
-	PGS_RestartRun,
-	PGS_Suspending,
-	PGS_SuspendWake,
+enum TPicoGameState
+{
+   PGS_Paused = 1,
+   PGS_Running,
+   PGS_Quit,
+   PGS_KeyConfig,
+   PGS_ReloadRom,
+   PGS_Menu,
+   PGS_RestartRun,
+   PGS_Suspending,
+   PGS_SuspendWake,
 };
 
 extern char romFileName[];
@@ -28,8 +29,8 @@ void emu_Loop(void);
 void emu_ResetGame(void);
 void emu_HandleResume(void);
 
-void emu_msg_cb(const char *msg);
+void emu_msg_cb(const char* msg);
 
 // actually comes from Pico/Misc_amips.s
-void memset32_uncached(int *dest, int c, int count);
+void memset32_uncached(int* dest, int c, int count);
 

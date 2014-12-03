@@ -7,18 +7,18 @@ extern "C" {
 
 struct patch_inst
 {
-	char code[12];
-	char name[52];
-	unsigned int active;
-	unsigned int addr;
-	unsigned short data;
-	unsigned short data_old;
+   char code[12];
+   char name[52];
+   unsigned int active;
+   unsigned int addr;
+   unsigned short data;
+   unsigned short data_old;
 };
 
-extern struct patch_inst *PicoPatches;
+extern struct patch_inst* PicoPatches;
 extern int PicoPatchCount;
 
-int  PicoPatchLoad(const char *fname);
+int  PicoPatchLoad(const char* fname);
 void PicoPatchUnload(void);
 void PicoPatchPrepare(void);
 void PicoPatchApply(void);

@@ -16,103 +16,103 @@ extern "C" {
 
 typedef struct
 {
-	unsigned char Buffer[(32 * 1024 * 2) + 2352];
-//	unsigned int Host_Data;		// unused
-//	unsigned int DMA_Adr;		// 0A
-//	unsigned int Stop_Watch;	// 0C
-	unsigned int COMIN;
-	unsigned int IFSTAT;
-	union
-	{
-		struct
-		{
-			unsigned char L;
-			unsigned char H;
-			unsigned short unused;
-		} B;
-		int N;
-	} DBC;
-	union
-	{
-		struct
-		{
-			unsigned char L;
-			unsigned char H;
-			unsigned short unused;
-		} B;
-		int N;
-	} DAC;
-	union
-	{
-		struct
-		{
-			unsigned char B0;
-			unsigned char B1;
-			unsigned char B2;
-			unsigned char B3;
-		} B;
-		unsigned int N;
-	} HEAD;
-	union
-	{
-		struct
-		{
-			unsigned char L;
-			unsigned char H;
-			unsigned short unused;
-		} B;
-		int N;
-	} PT;
-	union
-	{
-		struct
-		{
-			unsigned char L;
-			unsigned char H;
-			unsigned short unused;
-		} B;
-		int N;
-	} WA;
-	union
-	{
-		struct
-		{
-			unsigned char B0;
-			unsigned char B1;
-			unsigned char B2;
-			unsigned char B3;
-		} B;
-		unsigned int N;
-	} STAT;
-	unsigned int SBOUT;
-	unsigned int IFCTRL;
-	union
-	{
-		struct
-		{
-			unsigned char B0;
-			unsigned char B1;
-			unsigned char B2;
-			unsigned char B3;
-		} B;
-		unsigned int N;
-	} CTRL;
-	unsigned int Decode_Reg_Read;
+   unsigned char Buffer[(32 * 1024 * 2) + 2352];
+   // unsigned int Host_Data;    // unused
+   // unsigned int DMA_Adr;      // 0A
+   // unsigned int Stop_Watch;   // 0C
+   unsigned int COMIN;
+   unsigned int IFSTAT;
+   union
+   {
+      struct
+      {
+         unsigned char L;
+         unsigned char H;
+         unsigned short unused;
+      } B;
+      int N;
+   } DBC;
+   union
+   {
+      struct
+      {
+         unsigned char L;
+         unsigned char H;
+         unsigned short unused;
+      } B;
+      int N;
+   } DAC;
+   union
+   {
+      struct
+      {
+         unsigned char B0;
+         unsigned char B1;
+         unsigned char B2;
+         unsigned char B3;
+      } B;
+      unsigned int N;
+   } HEAD;
+   union
+   {
+      struct
+      {
+         unsigned char L;
+         unsigned char H;
+         unsigned short unused;
+      } B;
+      int N;
+   } PT;
+   union
+   {
+      struct
+      {
+         unsigned char L;
+         unsigned char H;
+         unsigned short unused;
+      } B;
+      int N;
+   } WA;
+   union
+   {
+      struct
+      {
+         unsigned char B0;
+         unsigned char B1;
+         unsigned char B2;
+         unsigned char B3;
+      } B;
+      unsigned int N;
+   } STAT;
+   unsigned int SBOUT;
+   unsigned int IFCTRL;
+   union
+   {
+      struct
+      {
+         unsigned char B0;
+         unsigned char B1;
+         unsigned char B2;
+         unsigned char B3;
+      } B;
+      unsigned int N;
+   } CTRL;
+   unsigned int Decode_Reg_Read;
 } CDC;
 
 typedef struct
 {
-//	unsigned short Fader;	// 34
-//	unsigned short Control;	// 36
-//	unsigned short Cur_Comm;// unused
+   // unsigned short Fader;   // 34
+   // unsigned short Control; // 36
+   // unsigned short Cur_Comm;// unused
 
-	// "Receive status"
-	unsigned short Status;
-	unsigned short Minute;
-	unsigned short Seconde;
-	unsigned short Frame;
-	unsigned char  Ext;
-	unsigned char  pad[3];
+   // "Receive status"
+   unsigned short Status;
+   unsigned short Minute;
+   unsigned short Seconde;
+   unsigned short Frame;
+   unsigned char  Ext;
+   unsigned char  pad[3];
 } CDD;
 
 

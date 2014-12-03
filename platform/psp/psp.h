@@ -32,17 +32,17 @@ void psp_msleep(int ms);
 extern unsigned int guCmdList[GU_CMDLIST_SIZE];
 extern int psp_unhandled_suspend;
 
-void *psp_video_get_active_fb(void);
+void* psp_video_get_active_fb(void);
 void  psp_video_switch_to_single(void);
 void  psp_video_flip(int wait_vsync);
-extern void *psp_screen;
+extern void* psp_screen;
 
 unsigned int psp_pad_read(int blocking);
 
 int psp_get_cpu_clock(void);
 int psp_set_cpu_clock(int clock);
 
-char *psp_get_status_line(void);
+char* psp_get_status_line(void);
 
 void psp_wait_suspend(void);
 void psp_resume_suspend(void);
@@ -75,7 +75,7 @@ void psp_resume_suspend(void);
 
 unsigned long wait_for_input(unsigned int interesting, int is_key_config);
 void menu_draw_begin(void);
-void menu_darken_bg(void *dst, const void *src, int pixels, int darker);
+void menu_darken_bg(void* dst, const void* src, int pixels, int darker);
 void menu_draw_end(void);
 
 #define SCREEN_WIDTH  512

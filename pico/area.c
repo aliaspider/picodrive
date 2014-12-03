@@ -13,152 +13,166 @@
 #include "sound/ym2612.h"
 
 // sn76496
-extern int *sn76496_regs;
+extern int* sn76496_regs;
 
 
-struct PicoArea { void *data; int len; char *name; };
+struct PicoArea
+{
+   void* data;
+   int len;
+   char* name;
+};
 
 // strange observation on Symbian OS 9.1, m600 organizer fw r3a06:
 // taking an address of fread or fwrite causes "application could't be started" error
 // on startup randomly depending on binary layout of executable file.
 
-arearw    *areaRead  = (arearw *) 0; // fread;  // read and write function pointers for
-arearw    *areaWrite = (arearw *) 0; // fwrite; // gzip save state ability
-areaeof   *areaEof   = (areaeof *) 0;
-areaseek  *areaSeek  = (areaseek *) 0;
-areaclose *areaClose = (areaclose *) 0;
+arearw*    areaRead  = (arearw*)
+                       0;  // fread;  // read and write function pointers for
+arearw*    areaWrite = (arearw*) 0;  // fwrite; // gzip save state ability
+areaeof*   areaEof   = (areaeof*) 0;
+areaseek*  areaSeek  = (areaseek*) 0;
+areaclose* areaClose = (areaclose*) 0;
 
 void (*PicoLoadStateHook)(void) = NULL;
 
 
 // Scan one variable and callback
-static int ScanVar(void *data,int len,char *name,void *PmovFile,int PmovAction)
+static int ScanVar(void* data, int len, char* name, void* PmovFile,
+                   int PmovAction)
 {
-  int ret = 0;
-  if ((PmovAction&3)==1) ret = areaWrite(data,1,len,PmovFile);
-  if ((PmovAction&3)==2) ret = areaRead (data,1,len,PmovFile);
-  return (ret != len);
+   int ret = 0;
+   if ((PmovAction & 3) == 1) ret = areaWrite(data, 1, len, PmovFile);
+   if ((PmovAction & 3) == 2) ret = areaRead(data, 1, len, PmovFile);
+   return (ret != len);
 }
 
 #define SCAN_VAR(x,y) ScanVar(&x,sizeof(x),y,PmovFile,PmovAction);
 #define SCANP(x)      ScanVar(&Pico.x,sizeof(Pico.x),#x,PmovFile,PmovAction);
 
 // Pack the cpu into a common format:
-PICO_INTERNAL void PicoAreaPackCpu(unsigned char *cpu, int is_sub)
+PICO_INTERNAL void PicoAreaPackCpu(unsigned char* cpu, int is_sub)
 {
-  unsigned int pc=0;
+   unsigned int pc = 0;
 
-  M68K_CONTEXT *context = is_sub ? &PicoCpuFS68k : &PicoCpuFM68k;
-  memcpy(cpu,context->dreg,0x40);
-  pc=context->pc;
-  *(unsigned int  *)(cpu+0x44)=context->sr;
-  *(unsigned int  *)(cpu+0x48)=context->asp;
-  cpu[0x4c] = context->interrupts[0];
-  cpu[0x4d] = (context->execinfo & FM68K_HALTED) ? 1 : 0;
+   M68K_CONTEXT* context = is_sub ? &PicoCpuFS68k : &PicoCpuFM68k;
+   memcpy(cpu, context->dreg, 0x40);
+   pc = context->pc;
+   *(unsigned int*)(cpu + 0x44) = context->sr;
+   *(unsigned int*)(cpu + 0x48) = context->asp;
+   cpu[0x4c] = context->interrupts[0];
+   cpu[0x4d] = (context->execinfo & FM68K_HALTED) ? 1 : 0;
 
-  *(unsigned int *)(cpu+0x40)=pc;
+   *(unsigned int*)(cpu + 0x40) = pc;
 }
 
-PICO_INTERNAL void PicoAreaUnpackCpu(unsigned char *cpu, int is_sub)
+PICO_INTERNAL void PicoAreaUnpackCpu(unsigned char* cpu, int is_sub)
 {
-  M68K_CONTEXT *context = is_sub ? &PicoCpuFS68k : &PicoCpuFM68k;
-  memcpy(context->dreg,cpu,0x40);
-  context->pc =*(unsigned int *)(cpu+0x40);
-  context->sr =*(unsigned int *)(cpu+0x44);
-  context->asp=*(unsigned int *)(cpu+0x48);
-  context->interrupts[0] = cpu[0x4c];
-  context->execinfo &= ~FM68K_HALTED;
-  if (cpu[0x4d]&1) context->execinfo |= FM68K_HALTED;
+   M68K_CONTEXT* context = is_sub ? &PicoCpuFS68k : &PicoCpuFM68k;
+   memcpy(context->dreg, cpu, 0x40);
+   context->pc = *(unsigned int*)(cpu + 0x40);
+   context->sr = *(unsigned int*)(cpu + 0x44);
+   context->asp = *(unsigned int*)(cpu + 0x48);
+   context->interrupts[0] = cpu[0x4c];
+   context->execinfo &= ~FM68K_HALTED;
+   if (cpu[0x4d] & 1) context->execinfo |= FM68K_HALTED;
 }
 
 // Scan the contents of the virtual machine's memory for saving or loading
-static int PicoAreaScan(int PmovAction,unsigned int ver, void *PmovFile)
+static int PicoAreaScan(int PmovAction, unsigned int ver, void* PmovFile)
 {
-  void *ym2612_regs;
-  unsigned char cpu[0x60];
-  unsigned char cpu_z80[0x60];
-  int ret;
+   void* ym2612_regs;
+   unsigned char cpu[0x60];
+   unsigned char cpu_z80[0x60];
+   int ret;
 
-  memset(&cpu,0,sizeof(cpu));
-  memset(&cpu_z80,0,sizeof(cpu_z80));
+   memset(&cpu, 0, sizeof(cpu));
+   memset(&cpu_z80, 0, sizeof(cpu_z80));
 
-  ym2612_regs = YM2612GetRegs();
+   ym2612_regs = YM2612GetRegs();
 
-  if (PmovAction&4)
-  {
-    Pico.m.scanline=0;
+   if (PmovAction & 4)
+   {
+      Pico.m.scanline = 0;
 
-    // Scan all the memory areas:
-    SCANP(ram) SCANP(vram) SCANP(zram) SCANP(cram) SCANP(vsram)
+      // Scan all the memory areas:
+      SCANP(ram) SCANP(vram) SCANP(zram) SCANP(cram) SCANP(vsram)
 
-    // Pack, scan and unpack the cpu data:
-    if((PmovAction&3)==1) PicoAreaPackCpu(cpu, 0);
-    //PicoMemInit();
-    SCAN_VAR(cpu,"cpu")
-    if((PmovAction&3)==2) PicoAreaUnpackCpu(cpu, 0);
+      // Pack, scan and unpack the cpu data:
+      if ((PmovAction & 3) == 1) PicoAreaPackCpu(cpu, 0);
+      //PicoMemInit();
+      SCAN_VAR(cpu, "cpu")
+      if ((PmovAction & 3) == 2) PicoAreaUnpackCpu(cpu, 0);
 
-    SCAN_VAR(Pico.m    ,"misc")
-    SCAN_VAR(Pico.video,"video")
+      SCAN_VAR(Pico.m    , "misc")
+      SCAN_VAR(Pico.video, "video")
 
-    if (PicoOpt&7) {
-      if((PmovAction&3)==1) z80_pack(cpu_z80);
-      ret = SCAN_VAR(cpu_z80,"cpu_z80")
-      // do not unpack if we fail to load z80 state
-      if((PmovAction&3)==2) {
-        if(ret) z80_reset();
-        else    z80_unpack(cpu_z80);
+      if (PicoOpt & 7)
+      {
+         if ((PmovAction & 3) == 1) z80_pack(cpu_z80);
+         ret = SCAN_VAR(cpu_z80, "cpu_z80")
+               // do not unpack if we fail to load z80 state
+               if ((PmovAction & 3) == 2)
+         {
+            if (ret) z80_reset();
+            else    z80_unpack(cpu_z80);
+         }
       }
-    }
-    if (PicoOpt&3)
-      ScanVar(sn76496_regs,28*4,"SN76496state", PmovFile, PmovAction); // regs and other stuff
-    if (PicoOpt&1) {
-      if((PmovAction&3)==1) ym2612_pack_state();
-      ScanVar(ym2612_regs, 0x200+4, "YM2612state", PmovFile, PmovAction); // regs + addr line
-      if((PmovAction&3)==2) ym2612_unpack_state(); // reload YM2612 state from it's regs
-    }
-  }
+      if (PicoOpt & 3)
+         ScanVar(sn76496_regs, 28 * 4, "SN76496state", PmovFile,
+                 PmovAction); // regs and other stuff
+      if (PicoOpt & 1)
+      {
+         if ((PmovAction & 3) == 1) ym2612_pack_state();
+         ScanVar(ym2612_regs, 0x200 + 4, "YM2612state", PmovFile,
+                 PmovAction); // regs + addr line
+         if ((PmovAction & 3) == 2)
+            ym2612_unpack_state(); // reload YM2612 state from it's regs
+      }
+   }
 
-  return 0;
+   return 0;
 }
 
 // ---------------------------------------------------------------------------
 // Helper code to save/load to a file handle
 
 // Save or load the state from PmovFile:
-int PmovState(int PmovAction, void *PmovFile)
+int PmovState(int PmovAction, void* PmovFile)
 {
-  int minimum=0;
-  unsigned char head[32];
+   int minimum = 0;
+   unsigned char head[32];
 
-  if ((PicoAHW & PAHW_MCD) || carthw_chunks != NULL)
-  {
-    if (PmovAction&1) return PicoCdSaveState(PmovFile);
-    if (PmovAction&2) {
-      int ret = PicoCdLoadState(PmovFile);
-      if (PicoLoadStateHook) PicoLoadStateHook();
-      return ret;
-    }
-  }
+   if ((PicoAHW & PAHW_MCD) || carthw_chunks != NULL)
+   {
+      if (PmovAction & 1) return PicoCdSaveState(PmovFile);
+      if (PmovAction & 2)
+      {
+         int ret = PicoCdLoadState(PmovFile);
+         if (PicoLoadStateHook) PicoLoadStateHook();
+         return ret;
+      }
+   }
 
-  memset(head,0,sizeof(head));
+   memset(head, 0, sizeof(head));
 
-  // Find out minimal compatible version:
-  //PicoAreaScan(PmovAction&0xc,&minimum);
-  minimum = 0x0021;
+   // Find out minimal compatible version:
+   //PicoAreaScan(PmovAction&0xc,&minimum);
+   minimum = 0x0021;
 
-  memcpy(head,"Pico",4);
-  *(unsigned int *)(head+0x8)=PicoVer;
-  *(unsigned int *)(head+0xc)=minimum;
+   memcpy(head, "Pico", 4);
+   *(unsigned int*)(head + 0x8) = PicoVer;
+   *(unsigned int*)(head + 0xc) = minimum;
 
-  // Scan header:
-  if (PmovAction&1) areaWrite(head,1,sizeof(head),PmovFile);
-  if (PmovAction&2) areaRead (head,1,sizeof(head),PmovFile);
+   // Scan header:
+   if (PmovAction & 1) areaWrite(head, 1, sizeof(head), PmovFile);
+   if (PmovAction & 2) areaRead(head, 1, sizeof(head), PmovFile);
 
-  // Scan memory areas:
-  PicoAreaScan(PmovAction, *(unsigned int *)(head+0x8), PmovFile);
+   // Scan memory areas:
+   PicoAreaScan(PmovAction, *(unsigned int*)(head + 0x8), PmovFile);
 
-  if ((PmovAction&2) && PicoLoadStateHook) PicoLoadStateHook();
+   if ((PmovAction & 2) && PicoLoadStateHook) PicoLoadStateHook();
 
-  return 0;
+   return 0;
 }
 
