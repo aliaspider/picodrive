@@ -602,6 +602,7 @@ static void BackFillFull(int reg7)
 
 static void DrawDisplayFull(void)
 {
+//   return;
    struct PicoVideo* pvid = &Pico.video;
    int win, edge = 0, hvwin = 0; // LSb->MSb: hwin&plane, vwin&plane, full
    int planestart = START_ROW,

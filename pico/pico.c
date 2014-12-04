@@ -13,7 +13,9 @@
 int PicoVer = 0x0133;
 struct Pico Pico;
 int PicoOpt = 0;
+#ifndef __LIBRETRO__
 int PicoSkipFrame = 0; // skip rendering frame?
+#endif
 int emustatus = 0;     // rapid_ym2612, multi_ym_updates
 int PicoPad[2];        // Joypads, format is MXYZ SACB RLDU
 int PicoPadInt[2];     // internal copy

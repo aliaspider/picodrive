@@ -681,14 +681,11 @@ void retro_run(void)
          if (input_state_cb(pad, RETRO_DEVICE_JOYPAD, 0, i))
             PicoPad[pad] |= retro_pico_map[i];
 
-   PicoSkipFrame = 0;
-
    //   PicoScanBegin = EmuScanSlowBegin;
    //   PicoScanEnd = EmuScanSlowEnd;
 
    EmuScanPrepare();
 
-   //   PicoSkipFrame = 1;
    PicoFrame();
 
    //   static unsigned int __attribute__((aligned(16))) d_list[256];
@@ -744,6 +741,7 @@ void retro_init(void)
    //       | POPT_ACC_SPRITES|POPT_DIS_32C_BORDER;
 
    PicoOpt = 0x0f | POPT_EN_MCD_PCM | POPT_EN_MCD_CDDA | POPT_EN_MCD_GFX |
+//             POPT_ALT_RENDERER|
              POPT_ACC_SPRITES;
    PsndRate = 22050;
    PicoAutoRgnOrder = 0x184; // US, EU, JP

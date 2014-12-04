@@ -40,6 +40,7 @@ static int PicoFrameHints(void)
 
    pv->v_counter = Pico.m.scanline = 0;
 
+#ifndef __LIBRETRO__
    if ((PicoOpt & POPT_ALT_RENDERER) && !PicoSkipFrame
          && (pv->reg[1] & 0x40)) // fast rend., display enabled
    {
@@ -51,7 +52,9 @@ static int PicoFrameHints(void)
 #endif
       skip = 1;
    }
-   else skip = PicoSkipFrame;
+   else
+#endif
+      skip = PicoSkipFrame;
 
    if (Pico.m.pal)
    {
@@ -112,6 +115,7 @@ static int PicoFrameHints(void)
          }
       }
 
+#ifndef __LIBRETRO__
       // decide if we draw this line
       if (!skip && (PicoOpt & POPT_ALT_RENDERER))
       {
@@ -125,6 +129,7 @@ static int PicoFrameHints(void)
             skip = 1;
          }
       }
+#endif
 
       // get samples from sound chips
       if ((y == 224 || y == line_sample) && PsndOut)

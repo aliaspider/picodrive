@@ -54,8 +54,12 @@ extern int PicoOpt; // bitfield
 #define PAHW_PICO (1<<3)
 extern int PicoAHW;            // Pico active hw
 extern int PicoVer;
+#ifndef __LIBRETRO__
 extern int
 PicoSkipFrame;      // skip rendering frame, but still do sound (if enabled) and emulation stuff
+#else
+#define PicoSkipFrame   0
+#endif
 extern int
 PicoRegionOverride; // override the region detection 0: auto, 1: Japan NTSC, 2: Japan PAL, 4: US, 8: Europe
 extern int

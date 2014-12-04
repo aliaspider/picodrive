@@ -19,16 +19,16 @@ endif
 
 # Pico
 
-OBJS += pico/area.o pico/cart.o pico/memory.o pico/misc.o pico/pico.o pico/sek.o pico/videoport.o \
-		pico/draw2.o pico/draw.o pico/patch.o pico/draw_amips.o pico/memory_amips.o \
-		pico/misc_amips.o
+OBJS += pico/area.o pico/cart.o pico/memory.o pico/misc.o pico/pico.o pico/sek.o pico/videoport.o
+OBJS += pico/draw.o pico/patch.o pico/draw_amips.o pico/memory_amips.o
+OBJS += pico/misc_amips.o
 # Pico - CD
-OBJS += pico/cd/pico.o pico/cd/memory.o pico/cd/sek.o pico/cd/LC89510.o \
-		pico/cd/cd_sys.o pico/cd/cd_file.o pico/cd/cue.o pico/cd/gfx_cd.o \
-		pico/cd/area.o pico/cd/misc.o pico/cd/pcm.o pico/cd/buffering.o
+OBJS += pico/cd/pico.o pico/cd/memory.o pico/cd/sek.o pico/cd/LC89510.o
+OBJS += pico/cd/cd_sys.o pico/cd/cd_file.o pico/cd/cue.o pico/cd/gfx_cd.o
+OBJS += pico/cd/area.o pico/cd/misc.o pico/cd/pcm.o pico/cd/buffering.o
 # Pico - carthw
-OBJS += pico/carthw/carthw.o pico/carthw/svp/svp.o pico/carthw/svp/memory.o \
-		pico/carthw/svp/ssp16.o
+OBJS += pico/carthw/carthw.o pico/carthw/svp/svp.o pico/carthw/svp/memory.o
+OBJS += pico/carthw/svp/ssp16.o
 # Pico - Pico
 OBJS += pico/pico/pico.o pico/pico/memory.o pico/pico/xpcm.o
 
